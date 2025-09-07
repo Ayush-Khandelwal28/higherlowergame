@@ -23,4 +23,17 @@
 			100% { transform: scale(1) rotate(0deg); opacity: 1; }
 		}
 		.animate-badge-swap { animation: badge-swap 500ms cubic-bezier(.5,-0.2,.2,1.4); }
+
+	/* === Landing Page extracted styles === */
+	@keyframes gradientShift {
+		0%, 100% { background-position: 0% 50%; }
+		50% { background-position: 100% 50%; }
+	}
+	.animate-gradient-shift { animation: gradientShift 8s ease infinite; }
+
+	/* Use Tailwind's existing spin keyframes; just slower */
+	.animate-spin-slow { animation: spin 3s linear infinite; }
+
+	/* Additional shadow size beyond built-in Tailwind scales */
+	.shadow-3xl { box-shadow: 0 35px 60px -12px rgba(0, 0, 0, 0.25); }
 }
