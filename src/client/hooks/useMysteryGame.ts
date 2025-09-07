@@ -103,15 +103,18 @@ export function useMysteryGame(entries: SubredditEntry[]): UseMysteryGameReturn 
     if (correct) {
       const winnerInfo = side === 'left' ? pair.left : pair.right;
       setScore(s => s + 1);
-      // schedule next round after short delay with winner carried over
+      // Keep numbers visible for 2s before advancing
       window.setTimeout(() => {
         setResult(null);
         setPicked(null);
         nextRound(winnerInfo);
-      }, 1200);
+      }, 2000);
     } else {
-      setGameOver(true);
-      window.setTimeout(() => setResult(null), 1500);
+      // Delay game over overlay 2s so user can read counts
+      window.setTimeout(() => {
+        setGameOver(true);
+        setResult(null);
+      }, 2000);
     }
   };
 

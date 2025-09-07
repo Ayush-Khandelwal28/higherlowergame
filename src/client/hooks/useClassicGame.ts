@@ -76,21 +76,24 @@ export function useClassicGame(entries: SubredditEntry[]): UseClassicGameReturn 
     setGuessResult({ correct, relation });
     if (correct) {
       setScore(s => s + 1);
-      // promote challenger to new base after short delay, then start next round
+      // Wait 2s so user can read the revealed number before proceeding
       window.setTimeout(() => {
         setBase(challenger);
         startRound();
-      }, 1200);
+      }, 2000);
     } else {
-      setGameOver(true);
-      // update best if needed
-      setBest(prev => {
-        const newBest = score > prev ? score : prev;
-        if (newBest !== prev) {
-          try { window.localStorage.setItem(BEST_KEY_CLASSIC, String(newBest)); } catch {}
-        }
-        return newBest;
-      });
+      // Delay showing game over overlay for 2s so user can read the number
+      window.setTimeout(() => {
+        setGameOver(true);
+        // update best if needed (after reveal delay so score visible)
+        setBest(prev => {
+          const newBest = score > prev ? score : prev;
+          if (newBest !== prev) {
+            try { window.localStorage.setItem(BEST_KEY_CLASSIC, String(newBest)); } catch {}
+          }
+          return newBest;
+        });
+      }, 2000);
     }
   };
 

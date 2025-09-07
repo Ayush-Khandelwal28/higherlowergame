@@ -19,6 +19,25 @@ export const ClassicGame: React.FC<ClassicGameProps> = ({ onExit }) => {
     reset,
   } = useClassicGame(entries);
 
+  // Badge feedback state (local) to revert to VS while hook still processing
+  const [badgeState, setBadgeState] = React.useState<'vs' | 'correct' | 'wrong'>('vs');
+  const [swapAnim, setSwapAnim] = React.useState(false);
+  React.useEffect(() => {
+    let timer: number | undefined;
+    if (guessed && guessResult) {
+      setSwapAnim(false);
+      setBadgeState(guessResult.correct ? 'correct' : 'wrong');
+      timer = window.setTimeout(() => {
+        setSwapAnim(true);
+        setBadgeState('vs');
+      }, 900);
+    } else if (!guessed) {
+      setSwapAnim(false);
+      setBadgeState('vs');
+    }
+    return () => { if (timer) window.clearTimeout(timer); };
+  }, [guessed, guessResult]);
+
   const disabled = guessed || gameOver;
 
   return (
@@ -43,8 +62,17 @@ export const ClassicGame: React.FC<ClassicGameProps> = ({ onExit }) => {
 
       <div className="relative w-full flex flex-col items-center">
         <div className="hidden sm:flex absolute left-1/2 -translate-x-1/2 top-1/2 -translate-y-1/2 z-30 pointer-events-none">
-          <div className="w-20 h-20 rounded-full bg-gradient-to-br from-[#ff4500] to-[#ff8717] flex items-center justify-center text-white font-black text-2xl shadow-lg ring-4 ring-white/70 animate-pulse-glow">
-            VS
+          <div
+            className={[
+              'w-20 h-20 rounded-full flex items-center justify-center font-black text-3xl shadow-lg ring-4 ring-white/70 transition-all duration-300',
+              badgeState === 'correct' ? 'bg-gradient-to-br from-green-500 to-emerald-600 text-white animate-result-pop' :
+              badgeState === 'wrong' ? 'bg-gradient-to-br from-red-500 to-rose-600 text-white animate-result-pop' :
+              'bg-gradient-to-br from-[#ff4500] to-[#ff8717] text-white ' + (swapAnim ? 'animate-badge-swap' : 'animate-pulse-glow')
+            ].join(' ')}
+            aria-live="polite"
+            aria-label={badgeState === 'correct' ? 'Correct' : badgeState === 'wrong' ? 'Incorrect' : 'Versus'}
+          >
+            {badgeState === 'correct' ? '✓' : badgeState === 'wrong' ? '✕' : 'VS'}
           </div>
         </div>
         <div className="w-full flex flex-col sm:flex-row gap-6 max-w-5xl relative z-20">
@@ -68,8 +96,17 @@ export const ClassicGame: React.FC<ClassicGameProps> = ({ onExit }) => {
           />
         </div>
         <div className="sm:hidden flex items-center justify-center -mt-2 z-30 pointer-events-none">
-          <div className="px-4 py-1 rounded-full bg-gradient-to-r from-[#ff4500] to-[#ff8717] text-white text-sm font-semibold shadow animate-pulse-glow">
-            VS
+          <div
+            className={[
+              'px-6 py-2 rounded-full font-extrabold text-lg shadow transition-all duration-300',
+              badgeState === 'correct' ? 'bg-gradient-to-r from-green-500 to-emerald-600 text-white animate-result-pop' :
+              badgeState === 'wrong' ? 'bg-gradient-to-r from-red-500 to-rose-600 text-white animate-result-pop' :
+              'bg-gradient-to-r from-[#ff4500] to-[#ff8717] text-white ' + (swapAnim ? 'animate-badge-swap' : 'animate-pulse-glow')
+            ].join(' ')}
+            aria-live="polite"
+            aria-label={badgeState === 'correct' ? 'Correct' : badgeState === 'wrong' ? 'Incorrect' : 'Versus'}
+          >
+            {badgeState === 'correct' ? '✓' : badgeState === 'wrong' ? '✕' : 'VS'}
           </div>
         </div>
       </div>
@@ -89,11 +126,8 @@ export const ClassicGame: React.FC<ClassicGameProps> = ({ onExit }) => {
             >Lower</button>
           </div>
         )}
-        {guessed && !gameOver && guessResult && (
-          <div className="text-sm font-semibold text-[#ff4500] bg-white/70 backdrop-blur px-5 py-2 rounded-full border border-[#ff4500]/20 shadow animate-pop-in">
-            {guessResult.correct ? 'Correct!' : 'Nope'} – It is <span className="font-bold">{challenger.subscribers >= base.subscribers ? 'Higher' : 'Lower'}</span>
-          </div>
-        )}
+        {/* Removed separate textual result banner; feedback now in center badge */}
+        <div className="h-6" />
       </div>
 
       {gameOver && (

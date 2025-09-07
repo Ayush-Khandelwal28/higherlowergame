@@ -23,6 +23,26 @@ export const MysteryGame: React.FC<MysteryGameProps> = ({ onExit }) => {
     resetGame,
   } = useMysteryGame(entries);
 
+  // Local badge feedback state to allow reverting to VS before round transition
+  const [badgeState, setBadgeState] = React.useState<'vs' | 'correct' | 'wrong'>('vs');
+  const [swapAnim, setSwapAnim] = React.useState(false);
+  React.useEffect(() => {
+    let revertTimer: number | undefined;
+    if (result && picked) {
+      setSwapAnim(false); // reset swap flag
+      setBadgeState(result.correct ? 'correct' : 'wrong');
+      revertTimer = window.setTimeout(() => {
+        setSwapAnim(true);
+        setBadgeState('vs');
+      }, 900); // show feedback briefly then revert
+    } else if (!picked) {
+      // ensure default when new round starts
+      setSwapAnim(false);
+      setBadgeState('vs');
+    }
+    return () => { if (revertTimer) window.clearTimeout(revertTimer); };
+  }, [result, picked]);
+
   return (
     <div className="relative min-h-screen flex flex-col items-center px-4 py-8 gap-8 bg-gradient-to-br from-[#ffe5d6] via-[#fff7f3] to-[#ffffff] text-[#1a1a1b]">
       {/* Header / Score Bar */}
@@ -44,11 +64,21 @@ export const MysteryGame: React.FC<MysteryGameProps> = ({ onExit }) => {
         </div>
       </div>
 
-      {/* Tiles + VS badge overlay */}
+      {/* Tiles + VS / Result badge overlay */}
       <div className="relative w-full flex flex-col items-center">
-  <div className="hidden sm:flex absolute left-1/2 -translate-x-1/2 top-1/2 -translate-y-1/2 z-30 pointer-events-none">
-          <div className="w-20 h-20 rounded-full bg-gradient-to-br from-[#ff4500] to-[#ff8717] flex items-center justify-center text-white font-black text-2xl shadow-lg ring-4 ring-white/70 animate-pulse-glow">
-            VS
+        {/* Desktop center badge */}
+        <div className="hidden sm:flex absolute left-1/2 -translate-x-1/2 top-1/2 -translate-y-1/2 z-30 pointer-events-none">
+          <div
+            className={[
+              'w-20 h-20 rounded-full flex items-center justify-center font-black text-3xl shadow-lg ring-4 ring-white/70 transition-all duration-300',
+              badgeState === 'correct' ? 'bg-gradient-to-br from-green-500 to-emerald-600 text-white animate-result-pop' :
+              badgeState === 'wrong' ? 'bg-gradient-to-br from-red-500 to-rose-600 text-white animate-result-pop' :
+              'bg-gradient-to-br from-[#ff4500] to-[#ff8717] text-white ' + (swapAnim ? 'animate-badge-swap' : 'animate-pulse-glow')
+            ].join(' ')}
+            aria-live="polite"
+            aria-label={badgeState === 'correct' ? 'Correct' : badgeState === 'wrong' ? 'Incorrect' : 'Versus'}
+          >
+            {badgeState === 'correct' ? '✓' : badgeState === 'wrong' ? '✕' : 'VS'}
           </div>
         </div>
         <GameScreen
@@ -60,31 +90,25 @@ export const MysteryGame: React.FC<MysteryGameProps> = ({ onExit }) => {
           onPick={handlePick}
           className="z-20"
         />
-  <div className="sm:hidden flex items-center justify-center -mt-2 z-30 pointer-events-none">
-          <div className="px-4 py-1 rounded-full bg-gradient-to-r from-[#ff4500] to-[#ff8717] text-white text-sm font-semibold shadow animate-pulse-glow">
-            VS
+        {/* Mobile badge */}
+        <div className="sm:hidden flex items-center justify-center -mt-2 z-30 pointer-events-none">
+          <div
+            className={[
+              'px-6 py-2 rounded-full font-extrabold text-lg shadow transition-all duration-300',
+              badgeState === 'correct' ? 'bg-gradient-to-r from-green-500 to-emerald-600 text-white animate-result-pop' :
+              badgeState === 'wrong' ? 'bg-gradient-to-r from-red-500 to-rose-600 text-white animate-result-pop' :
+              'bg-gradient-to-r from-[#ff4500] to-[#ff8717] text-white ' + (swapAnim ? 'animate-badge-swap' : 'animate-pulse-glow')
+            ].join(' ')}
+            aria-live="polite"
+            aria-label={badgeState === 'correct' ? 'Correct' : badgeState === 'wrong' ? 'Incorrect' : 'Versus'}
+          >
+            {badgeState === 'correct' ? '✓' : badgeState === 'wrong' ? '✕' : 'VS'}
           </div>
         </div>
       </div>
 
-      {/* Result banner */}
-      <div className="h-20 flex items-center justify-center relative w-full z-30">
-        {picked && result && (
-          <div className="flex items-center gap-3 text-lg font-semibold bg-white/80 backdrop-blur rounded-full px-6 py-2 shadow border border-[#ff4500]/20 animate-pop-in">
-            {result.correct ? (
-              <span className="inline-flex items-center gap-2 text-green-600 font-bold tracking-wide">
-                <span className="w-8 h-8 rounded-full bg-green-100 flex items-center justify-center text-2xl shadow-sm">✅</span>
-                Correct
-              </span>
-            ) : (
-              <span className="inline-flex items-center gap-2 text-red-600 font-bold tracking-wide">
-                <span className="w-8 h-8 rounded-full bg-red-100 flex items-center justify-center text-2xl shadow-sm">❌</span>
-                Nope
-              </span>
-            )}
-          </div>
-        )}
-      </div>
+      {/* Spacer to keep layout balanced (replaces old banner area) */}
+      <div className="h-14" />
 
       {/* Next round indicator */}
       {revealed && !gameOver && result?.correct && (
