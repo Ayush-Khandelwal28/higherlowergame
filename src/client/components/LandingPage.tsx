@@ -5,6 +5,7 @@ interface LandingPageProps {
   onClassic: () => void;
   onTimedMystery: () => void;
   onTimedClassic: () => void;
+  onLeaderboard: () => void;
   totalSubreddits?: number;
 }
 
@@ -13,6 +14,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
   onClassic,
   onTimedMystery,
   onTimedClassic,
+  onLeaderboard,
   totalSubreddits,
 }) => {
   const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
@@ -200,6 +202,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
               LIVE DATA • {totalSubreddits?.toLocaleString() ?? '—'} SUBREDDITS
             </span>
             <div className="w-3 h-3 bg-orange-400 rounded-full animate-pulse" style={{ animationDelay: '0.5s' }}></div>
+            <button onClick={onLeaderboard} className="ml-4 px-4 py-2 rounded-full bg-white/20 hover:bg-white/30 text-white text-xs font-semibold border border-white/40 transition-colors">🏆 Leaderboards</button>
           </div>
         </footer>
       </div>

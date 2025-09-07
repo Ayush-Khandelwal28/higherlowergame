@@ -5,8 +5,9 @@ import { MysteryPage } from './pages/MysteryPage';
 import { ClassicPage } from './pages/ClassicPage';
 import { TimedClassicPage } from './pages/TimedClassicPage';
 import { TimedMysteryPage } from './pages/TimedMysteryPage';
+import { LeaderboardPage } from './pages/LeaderboardPage';
 
-type Route = 'menu' | 'mystery' | 'classic' | 'timed-mystery' | 'timed-classic';
+type Route = 'menu' | 'mystery' | 'classic' | 'timed-mystery' | 'timed-classic' | 'leaderboard';
 
 export const App: React.FC = () => {
   const [route, setRoute] = React.useState<Route>('menu');
@@ -15,6 +16,7 @@ export const App: React.FC = () => {
   if (route === 'classic') return <ClassicPage onBack={() => setRoute('menu')} />;
   if (route === 'timed-mystery') return <TimedMysteryPage onBack={() => setRoute('menu')} />;
   if (route === 'timed-classic') return <TimedClassicPage onBack={() => setRoute('menu')} />;
+  if (route === 'leaderboard') return <LeaderboardPage onBack={() => setRoute('menu')} />;
 
   return (
     <LandingPage
@@ -22,7 +24,8 @@ export const App: React.FC = () => {
       onClassic={() => setRoute('classic')}
       onTimedMystery={() => setRoute('timed-mystery')}
       onTimedClassic={() => setRoute('timed-classic')}
-      totalSubreddits={(subredditsData as any).total}
+  totalSubreddits={(subredditsData as any).total}
+  onLeaderboard={() => setRoute('leaderboard')}
     />
   );
 };

@@ -30,3 +30,28 @@ export type SubredditInfoResponse = {
   iconUrl: string | null;
   };
 };
+
+// ---- Leaderboard Types ----
+export type LeaderboardMode = 'classic' | 'mystery' | 'timed-classic' | 'timed-mystery';
+
+export interface LeaderboardEntry {
+  username: string;
+  score: number;
+  rank: number; // 1-based
+}
+
+export interface LeaderboardGetResponse {
+  type: 'leaderboard';
+  mode: LeaderboardMode;
+  entries: LeaderboardEntry[]; // sorted by rank asc
+  user?: { username: string; score: number; rank: number } | null; // present if user exists on board
+  fetchedAt: string; // ISO
+}
+
+export interface LeaderboardSubmitResponse {
+  type: 'leaderboardSubmit';
+  mode: LeaderboardMode;
+  accepted: boolean; // true if new high score stored
+  previous?: number | null; // previous stored score for user
+  best: number; // resulting best after submission (>= previous)
+}

@@ -2,6 +2,7 @@ import React from 'react';
 import { GameScreen } from './GameScreen';
 import subredditsData from '../../../data/subreddits.json';
 import { useMysteryGame, SubredditEntry } from '../hooks/useMysteryGame';
+import { useLeaderboard } from '../hooks/useLeaderboard';
 
 interface MysteryGameProps {
   onExit?: () => void; // optional back handler
@@ -42,6 +43,10 @@ export const MysteryGame: React.FC<MysteryGameProps> = ({ onExit }) => {
     }
     return () => { if (revertTimer) window.clearTimeout(revertTimer); };
   }, [result, picked]);
+
+  // Leaderboard submission
+  const lb = useLeaderboard({ mode: 'mystery', limit: 0 });
+  React.useEffect(() => { if (gameOver && score > 0) lb.submit(score); }, [gameOver]);
 
   return (
     <div className="relative min-h-screen flex flex-col items-center px-4 py-8 gap-8 bg-gradient-to-br from-[#ffe5d6] via-[#fff7f3] to-[#ffffff] text-[#1a1a1b]">

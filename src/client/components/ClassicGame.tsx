@@ -2,6 +2,7 @@ import React from 'react';
 import subredditsData from '../../../data/subreddits.json';
 import { useClassicGame } from '../hooks/useClassicGame';
 import { SubredditCard } from './SubredditCard';
+import { useLeaderboard } from '../hooks/useLeaderboard';
 
 interface ClassicGameProps { onExit?: () => void; }
 
@@ -39,6 +40,14 @@ export const ClassicGame: React.FC<ClassicGameProps> = ({ onExit }) => {
   }, [guessed, guessResult]);
 
   const disabled = guessed || gameOver;
+
+  // Leaderboard submission (classic)
+  const lb = useLeaderboard({ mode: 'classic', limit: 0 }); // limit 0 to skip fetching list
+  React.useEffect(() => {
+    if (gameOver && score > 0) {
+      lb.submit(score);
+    }
+  }, [gameOver]);
 
   return (
     <div className="relative min-h-screen flex flex-col items-center px-4 py-8 gap-8 bg-gradient-to-br from-[#ffe5d6] via-[#fff7f3] to-[#ffffff] text-[#1a1a1b]">

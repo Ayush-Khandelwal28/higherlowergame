@@ -6,6 +6,7 @@ import { useMysteryTimed } from '../hooks/useMysteryTimed';
 import { SubredditCard } from './SubredditCard';
 import { GameScreen } from './GameScreen';
 import type { SubredditEntry } from '../hooks/useMysteryGame';
+import { useLeaderboard } from '../hooks/useLeaderboard';
 
 export type TimedVariant = 'classic' | 'mystery';
 
@@ -23,6 +24,9 @@ export const BeatTheClock: React.FC<BeatTheClockProps> = ({ variant, onExit }) =
   const timeUp = timer.remainingMs <= 0;
   const score = classic ? classic.score : mystery!.score;
   const mistakes = classic ? classic.mistakes : mystery!.mistakes;
+
+  const lb = useLeaderboard({ mode: variant === 'classic' ? 'timed-classic' : 'timed-mystery', limit: 0 });
+  React.useEffect(() => { if (timeUp && score > 0) lb.submit(score); }, [timeUp]);
 
   // Badge feedback (mirrors existing streak modes)
   const [badgeState, setBadgeState] = React.useState<'vs' | 'correct' | 'wrong'>('vs');

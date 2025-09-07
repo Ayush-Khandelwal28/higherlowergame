@@ -1,5 +1,5 @@
 import express from 'express';
-import { InitResponse, IncrementResponse, DecrementResponse, SubredditInfoResponse } from '../shared/types/api';
+import { InitResponse, IncrementResponse, DecrementResponse, SubredditInfoResponse, LeaderboardGetResponse, LeaderboardSubmitResponse, LeaderboardMode } from '../shared/types/api';
 import { redis, reddit, createServer, context, getServerPort } from '@devvit/web/server';
 import { createPost } from './core/post';
 
@@ -13,6 +13,120 @@ app.use(express.urlencoded({ extended: true }));
 app.use(express.text());
 
 const router = express.Router();
+
+// Helper: construct redis key for a leaderboard mode
+const lbKey = (mode: LeaderboardMode) => `lb:${mode}`;
+// Allowed modes set for validation
+const LB_MODES: LeaderboardMode[] = ['classic', 'mystery', 'timed-classic', 'timed-mystery'];
+
+// Submit score (stores only if higher than existing)
+router.post<{}, LeaderboardSubmitResponse | { status: string; message: string }, { mode: LeaderboardMode; score: number }>(
+  '/api/leaderboard/submit',
+  async (req, res) => {
+    try {
+  const username = await reddit.getCurrentUsername();
+      if (!username) {
+        res.status(400).json({ status: 'error', message: 'username unavailable (not logged in?)' });
+        return;
+      }
+      const { mode, score } = req.body || {};
+      if (!LB_MODES.includes(mode)) {
+        res.status(400).json({ status: 'error', message: 'invalid mode' });
+        return;
+      }
+      if (typeof score !== 'number' || score < 0) {
+        res.status(400).json({ status: 'error', message: 'invalid score' });
+        return;
+      }
+      const key = lbKey(mode);
+      const existingRaw = await redis.zScore(key, username);
+      const existing = existingRaw == null ? null : existingRaw;
+      let accepted = false;
+      if (existing == null || score > existing) {
+        // store new score
+        await redis.zAdd(key, { score, member: username });
+        accepted = true;
+      }
+      const best = accepted ? score : (existing ?? 0);
+      const payload: LeaderboardSubmitResponse = {
+        type: 'leaderboardSubmit',
+        mode,
+        accepted,
+        previous: existing,
+        best,
+      };
+      res.json(payload);
+    } catch (error) {
+      console.error('Leaderboard submit error', error);
+      res.status(500).json({ status: 'error', message: 'failed to submit score' });
+    }
+  }
+);
+
+// Fetch leaderboard (top N + current user)
+router.get<{}, LeaderboardGetResponse | { status: string; message: string }, {}, { mode: LeaderboardMode; limit?: string }>(
+  '/api/leaderboard',
+  async (req, res) => {
+    try {
+      const mode = req.query.mode as LeaderboardMode;
+      if (!LB_MODES.includes(mode)) {
+        res.status(400).json({ status: 'error', message: 'invalid mode' });
+        return;
+      }
+      const limit = Math.max(1, Math.min(100, parseInt(req.query.limit ?? '25')));
+      const key = lbKey(mode);
+      // Get top entries (highest score) using reverse range
+      // No helper for withScores, so fetch a wide range then pipeline scores individually.
+      // First get all members, then slice last N.
+      const rawMembers: any = await redis.zRange(key, 0, -1);
+      // Some redis client typings may return array of strings; normalize.
+      const allMembers: string[] = Array.isArray(rawMembers)
+        ? rawMembers.map((m: any) => typeof m === 'string' ? m : m?.member).filter(Boolean)
+        : [];
+      const sliced = allMembers.slice(-limit); // lowest..highest, so slice end
+      // Fetch scores for sliced members
+      const scores: number[] = [];
+      for (const m of sliced) {
+        const sc = await redis.zScore(key, m);
+        scores.push(sc ?? 0);
+      }
+      // Pair and sort descending
+      const paired = sliced.map((m, idx) => ({ member: m, score: scores[idx] ?? 0 }));
+      paired.sort((a, b) => b.score - a.score);
+      const top = paired.map((p, i) => ({ username: p.member, score: p.score, rank: i + 1 }));
+      let user: LeaderboardGetResponse['user'] = null;
+      const username = await reddit.getCurrentUsername();
+      if (username) {
+        const score = await redis.zScore(key, username);
+        if (score != null) {
+          // Determine rank: count how many have higher score
+          const rawForRank: any = await redis.zRange(key, 0, -1);
+          const membersForRank: string[] = Array.isArray(rawForRank)
+            ? rawForRank.map((m: any) => typeof m === 'string' ? m : m?.member).filter(Boolean)
+            : [];
+          let higher = 0;
+          for (const m of membersForRank) {
+            if (m === username) continue;
+            const sc = await redis.zScore(key, m);
+            if ((sc ?? 0) > score) higher++;
+          }
+          user = { username, score, rank: higher + 1 };
+        }
+      }
+      const payload: LeaderboardGetResponse = {
+        type: 'leaderboard',
+        mode,
+        entries: top,
+        user,
+        fetchedAt: new Date().toISOString(),
+      };
+      res.json(payload);
+    } catch (error) {
+      console.error('Leaderboard fetch error', error);
+      res.status(500).json({ status: 'error', message: 'failed to fetch leaderboard' });
+    }
+  }
+);
 
 router.get<{ postId: string }, InitResponse | { status: string; message: string }>(
   '/api/init',
