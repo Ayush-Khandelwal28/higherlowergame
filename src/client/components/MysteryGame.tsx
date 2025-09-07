@@ -1,13 +1,13 @@
 import React from 'react';
 import { GameScreen } from './GameScreen';
 import subredditsData from '../../../data/subreddits.json';
-import { useClassicGame, SubredditEntry } from '../hooks/useClassicGame';
+import { useMysteryGame, SubredditEntry } from '../hooks/useMysteryGame';
 
-interface ClassicGameProps {
+interface MysteryGameProps {
   onExit?: () => void; // optional back handler
 }
 
-export const ClassicGame: React.FC<ClassicGameProps> = ({ onExit }) => {
+export const MysteryGame: React.FC<MysteryGameProps> = ({ onExit }) => {
   const entries = (subredditsData as any).entries as SubredditEntry[];
   const {
     left,
@@ -21,7 +21,7 @@ export const ClassicGame: React.FC<ClassicGameProps> = ({ onExit }) => {
     round,
     handlePick,
     resetGame,
-  } = useClassicGame(entries);
+  } = useMysteryGame(entries);
 
   return (
     <div className="relative min-h-screen flex flex-col items-center px-4 py-8 gap-8 bg-gradient-to-br from-[#ffe5d6] via-[#fff7f3] to-[#ffffff] text-[#1a1a1b]">

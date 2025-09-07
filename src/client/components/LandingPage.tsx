@@ -1,11 +1,11 @@
 import React from 'react';
 
 interface LandingPageProps {
-  onClassic: () => void;
+  onMystery: () => void;
   totalSubreddits?: number;
 }
 
-export const LandingPage: React.FC<LandingPageProps> = ({ onClassic, totalSubreddits }) => {
+export const LandingPage: React.FC<LandingPageProps> = ({ onMystery, totalSubreddits }) => {
   return (
     <div className="min-h-screen flex flex-col items-center justify-center gap-10 px-6 py-12 bg-gradient-to-br from-[#ffe5d6] via-[#fff7f3] to-white text-[#1a1a1b]">
       <div className="flex flex-col items-center text-center gap-4 animate-fade-in">
@@ -18,10 +18,10 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onClassic, totalSubred
       </div>
       <div className="flex flex-col gap-5 w-full max-w-sm">
         <button
-          onClick={onClassic}
+          onClick={onMystery}
           className="group relative overflow-hidden rounded-2xl px-8 py-5 font-extrabold text-lg tracking-wide bg-gradient-to-br from-[#ff4500] to-[#ff8717] text-white shadow-lg hover:shadow-xl transition-all"
         >
-          <span className="relative z-10">Classic</span>
+          <span className="relative z-10">Mystery Mode</span>
           <span className="absolute inset-0 bg-[radial-gradient(circle_at_30%_30%,rgba(255,255,255,0.25),transparent_60%)] opacity-0 group-hover:opacity-100 transition-opacity" />
         </button>
         {/* Placeholder for future modes */}

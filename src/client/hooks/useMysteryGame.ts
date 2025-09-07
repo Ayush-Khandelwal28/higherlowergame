@@ -9,7 +9,7 @@ export interface SubredditEntry {
   iconUrl: string | null;
 }
 
-export interface UseClassicGameState {
+export interface UseMysteryGameState {
   left: SubredditInfo;
   right: SubredditInfo;
   picked: 'left' | 'right' | null;
@@ -21,7 +21,7 @@ export interface UseClassicGameState {
   round: number;
 }
 
-export interface UseClassicGameReturn extends UseClassicGameState {
+export interface UseMysteryGameReturn extends UseMysteryGameState {
   handlePick: (side: 'left' | 'right') => void;
   resetGame: () => void;
 }
@@ -34,7 +34,7 @@ const toInfo = (e: SubredditEntry): SubredditInfo => ({
   icon: e.iconUrl ?? null,
 });
 
-export function useClassicGame(entries: SubredditEntry[]): UseClassicGameReturn {
+export function useMysteryGame(entries: SubredditEntry[]): UseMysteryGameReturn {
   // filter usable once
   const usable = React.useMemo(
     () => entries.filter(e => typeof e.subscribersCount === 'number' && (e.subscribersCount ?? 0) > 0),
@@ -56,7 +56,7 @@ export function useClassicGame(entries: SubredditEntry[]): UseClassicGameReturn 
 
   const [pair, setPair] = React.useState(() => pickRandomPair());
   const [picked, setPicked] = React.useState<'left' | 'right' | null>(null);
-  const [result, setResult] = React.useState<UseClassicGameState['result']>(null);
+  const [result, setResult] = React.useState<UseMysteryGameState['result']>(null);
   const [score, setScore] = React.useState(0);
   const [best, setBest] = React.useState(() => {
     if (typeof window === 'undefined') return 0;
