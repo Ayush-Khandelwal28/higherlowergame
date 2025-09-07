@@ -1,98 +1,27 @@
 import React from 'react';
-import { GameScreen, SubredditInfo } from './GameScreen';
+import { GameScreen } from './GameScreen';
 import subredditsData from '../../../data/subreddits.json';
-
-interface SubredditEntry {
-  id: string | null;
-  name: string;
-  subscribersCount: number | null;
-  iconUrl: string | null;
-}
+import { useClassicGame, SubredditEntry } from '../hooks/useClassicGame';
 
 interface ClassicGameProps {
   onExit?: () => void; // optional back handler
 }
 
 export const ClassicGame: React.FC<ClassicGameProps> = ({ onExit }) => {
-  const allEntries = (subredditsData as any).entries as SubredditEntry[];
-  const usable = React.useMemo(
-    () => allEntries.filter(e => typeof e.subscribersCount === 'number' && (e.subscribersCount ?? 0) > 0),
-    [allEntries]
-  );
-
-  const [result, setResult] = React.useState<{ picked: 'left' | 'right'; correct: boolean } | null>(null);
-  const [picked, setPicked] = React.useState<'left' | 'right' | null>(null);
-  const revealed = picked != null; // once user picks we reveal counts
-  const [score, setScore] = React.useState(0);
-  const [best, setBest] = React.useState(() => {
-    const stored = typeof window !== 'undefined' ? window.localStorage.getItem('hl_best') : null;
-    return stored ? parseInt(stored) : 0;
-  });
-  const [gameOver, setGameOver] = React.useState(false);
-  const [round, setRound] = React.useState(0);
-
-  const pickRandomPair = React.useCallback((): { left: SubredditInfo; right: SubredditInfo } => {
-    if (usable.length < 2) return { left: { name: 'N/A', subscribers: 0 }, right: { name: 'N/A', subscribers: 0 } };
-    let i = Math.floor(Math.random() * usable.length);
-    let j = Math.floor(Math.random() * usable.length);
-    while (j === i) j = Math.floor(Math.random() * usable.length);
-    const a = usable[i]!;
-    const b = usable[j]!;
-    return {
-      left: { name: a.name, subscribers: a.subscribersCount ?? 0, icon: a.iconUrl ?? null },
-      right: { name: b.name, subscribers: b.subscribersCount ?? 0, icon: b.iconUrl ?? null }
-    };
-  }, [usable]);
-
-  const [pair, setPair] = React.useState(() => pickRandomPair());
-  const higher: 'left' | 'right' = pair.left.subscribers >= pair.right.subscribers ? 'left' : 'right';
-
-  const nextRound = React.useCallback(() => {
-    setPair(pickRandomPair());
-    setRound(r => r + 1);
-  }, [pickRandomPair]);
-
-  const handlePick = (side: 'left' | 'right') => {
-    if (picked) return; // ignore subsequent clicks
-    setPicked(side);
-    const correct = side === higher;
-    setResult({ picked: side, correct });
-    if (correct) {
-      setScore(s => s + 1);
-      setTimeout(() => {
-        // prepare next round
-        setResult(null);
-        setPicked(null);
-        nextRound();
-      }, 1200);
-    } else {
-      setGameOver(true);
-      setTimeout(() => {
-        setResult(null);
-      }, 1500);
-    }
-  };
-
-  React.useEffect(() => {
-    if (gameOver) {
-      setBest(prev => {
-        const newBest = score > prev ? score : prev;
-        if (newBest !== prev) {
-          try { window.localStorage.setItem('hl_best', String(newBest)); } catch {}
-        }
-        return newBest;
-      });
-    }
-  }, [gameOver, score]);
-
-  const resetGame = () => {
-    setScore(0);
-    setGameOver(false);
-    setResult(null);
-    setPicked(null);
-    setRound(0);
-    nextRound();
-  };
+  const entries = (subredditsData as any).entries as SubredditEntry[];
+  const {
+    left,
+    right,
+    picked,
+    revealed,
+    score,
+    best,
+    gameOver,
+    result,
+    round,
+    handlePick,
+    resetGame,
+  } = useClassicGame(entries);
 
   return (
     <div className="relative min-h-screen flex flex-col items-center px-4 py-8 gap-8 bg-gradient-to-br from-[#ffe5d6] via-[#fff7f3] to-[#ffffff] text-[#1a1a1b]">
@@ -124,8 +53,8 @@ export const ClassicGame: React.FC<ClassicGameProps> = ({ onExit }) => {
         </div>
         <GameScreen
           key={round}
-            left={pair.left}
-          right={pair.right}
+          left={left}
+          right={right}
           picked={picked}
           revealed={revealed}
           onPick={handlePick}
