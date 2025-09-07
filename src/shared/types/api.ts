@@ -16,3 +16,17 @@ export type DecrementResponse = {
   postId: string;
   count: number;
 };
+
+export type SubredditInfoResponse = {
+  type: 'subredditInfo';
+  name: string; // queried name
+  data: {
+    id: string | null;
+    name: string | null;
+    activeCount: number | null;
+    subscribersCount: number | null;
+    isNsfw: boolean;
+    createdAt: string | null; // ISO timestamp
+  iconUrl: string | null;
+  };
+};

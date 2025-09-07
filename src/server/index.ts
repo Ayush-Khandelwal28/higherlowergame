@@ -1,5 +1,5 @@
 import express from 'express';
-import { InitResponse, IncrementResponse, DecrementResponse } from '../shared/types/api';
+import { InitResponse, IncrementResponse, DecrementResponse, SubredditInfoResponse } from '../shared/types/api';
 import { redis, reddit, createServer, context, getServerPort } from '@devvit/web/server';
 import { createPost } from './core/post';
 
@@ -123,6 +123,92 @@ router.post('/internal/menu/post-create', async (_req, res): Promise<void> => {
     });
   }
 });
+
+// Fetch subreddit info by name
+router.get<{
+  name: string;
+}, SubredditInfoResponse | { status: string; message: string }>(
+  '/api/subreddit/:name',
+  async (req, res): Promise<void> => {
+    const { name } = req.params;
+    if (!name) {
+      res.status(400).json({ status: 'error', message: 'subreddit name is required' });
+      return;
+    }
+
+    try {
+      // Prefer the newer getSubredditInfoByName if available, else fall back
+      const anyReddit: any = reddit as any;
+      // Fetch primary info (SubredditInfo) first
+      let info: any = null;
+      if (typeof anyReddit.getSubredditInfoByName === 'function') {
+        info = await anyReddit.getSubredditInfoByName(name);
+      }
+
+      // Attempt to fetch full Subreddit object (needed for settings -> communityIcon)
+      let subredditObj: any = null;
+      if (typeof anyReddit.getSubredditByName === 'function') {
+        try {
+          subredditObj = await anyReddit.getSubredditByName(name);
+        } catch (_e) {
+          // ignore if not accessible
+        }
+      }
+
+      if (!info && subredditObj) {
+        // Derive a minimal info structure from Subreddit instance if info endpoint unavailable
+        const json = typeof subredditObj.toJSON === 'function' ? subredditObj.toJSON() : subredditObj;
+        info = {
+          id: json?.id,
+          name: json?.name,
+          activeCount: json?.numberOfActiveUsers,
+          subscribersCount: json?.numberOfSubscribers,
+          isNsfw: json?.nsfw,
+          createdAt: json?.createdAt,
+        };
+      }
+
+      if (!info) {
+        throw new Error('Subreddit not found');
+      }
+
+      // Extract icon from settings if possible
+      let iconUrl: string | null = null;
+      const settings = subredditObj?.settings;
+      if (settings) {
+        iconUrl =
+          settings.communityIcon ||
+          settings.bannerImage ||
+          settings.mobileBannerImage ||
+          settings.bannerBackgroundImage ||
+          null;
+      }
+
+      res.json({
+        type: 'subredditInfo',
+        name,
+        data: {
+          id: info?.id ?? null,
+          name: info?.name ?? info?.displayName ?? null,
+          activeCount: info?.activeCount ?? info?.numberOfActiveUsers ?? null,
+          subscribersCount: info?.subscribersCount ?? info?.numberOfSubscribers ?? null,
+          isNsfw: Boolean(info?.isNsfw ?? info?.nsfw),
+          createdAt: info?.createdAt
+            ? (info.createdAt instanceof Date
+                ? info.createdAt.toISOString()
+                : new Date(info.createdAt).toISOString())
+            : null,
+          iconUrl,
+        },
+      });
+    } catch (error) {
+      console.error(`Error fetching subreddit info for ${name}:`, error);
+      let message = 'Failed to fetch subreddit info';
+      if (error instanceof Error) message = message + ': ' + error.message;
+      res.status(400).json({ status: 'error', message });
+    }
+  }
+);
 
 // Use router middleware
 app.use(router);
