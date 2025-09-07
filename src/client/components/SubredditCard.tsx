@@ -9,9 +9,12 @@ interface CardProps {
   selected: boolean;
   dim: boolean;
   revealed: boolean;
+  showSubscribers?: boolean; // optional explicit control to show subscriber count regardless of revealed state
+  disabled?: boolean;
 }
 
-export const SubredditCard: React.FC<CardProps> = ({ data, onClick, selected, dim, revealed }) => {
+export const SubredditCard: React.FC<CardProps> = ({ data, onClick, selected, dim, revealed, showSubscribers, disabled }) => {
+  const displaySubscribers = showSubscribers ?? revealed;
   return (
     <button
       onClick={onClick}
@@ -23,7 +26,7 @@ export const SubredditCard: React.FC<CardProps> = ({ data, onClick, selected, di
         !selected && !dim && !revealed && 'hover:shadow-lg hover:scale-[1.015]',
         revealed && !selected && 'cursor-default'
       ].filter(Boolean).join(' ')}
-      disabled={revealed}
+      disabled={revealed || disabled}
     >
       <div className={[
         'h-full w-full rounded-[inherit] relative flex flex-col items-center justify-end gap-4 px-5 sm:px-6 pt-8 pb-6',
@@ -55,7 +58,7 @@ export const SubredditCard: React.FC<CardProps> = ({ data, onClick, selected, di
             r/{data.name}
           </div>
           <div className="mt-3 h-8 flex items-center justify-center font-mono text-sm">
-            {!revealed ? (
+            {!displaySubscribers ? (
               <span className="text-white/70 tracking-wide font-semibold">???</span>
             ) : (
               <CountUpNumber value={data.subscribers} className="text-white font-semibold text-base sm:text-lg drop-shadow" />
