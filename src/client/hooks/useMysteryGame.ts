@@ -41,20 +41,28 @@ export function useMysteryGame(entries: SubredditEntry[]): UseMysteryGameReturn 
     [entries]
   );
 
-  const pickRandomPair = React.useCallback((): { left: SubredditInfo; right: SubredditInfo } => {
-    if (usable.length < 2) {
-      const fallback = { name: 'N/A', subscribers: 0 } as SubredditInfo;
-      return { left: fallback, right: fallback };
-    }
-    let i = Math.floor(Math.random() * usable.length);
-    let j = Math.floor(Math.random() * usable.length);
-    while (j === i) j = Math.floor(Math.random() * usable.length);
-    const a = usable[i]!;
-    const b = usable[j]!;
-    return { left: toInfo(a), right: toInfo(b) };
+  // Helpers for random selection
+  const pickRandomInfo = React.useCallback((): SubredditInfo => {
+    if (!usable.length) return { name: 'N/A', subscribers: 0, icon: null };
+    const i = Math.floor(Math.random() * usable.length);
+    return toInfo(usable[i]!);
   }, [usable]);
 
-  const [pair, setPair] = React.useState(() => pickRandomPair());
+  const pickDistinctFrom = React.useCallback((excludeName: string): SubredditInfo => {
+    if (usable.length < 2) return pickRandomInfo();
+    let guard = 0;
+    let info = pickRandomInfo();
+    while (info.name === excludeName && guard < 20) { info = pickRandomInfo(); guard++; }
+    return info;
+  }, [usable, pickRandomInfo]);
+
+  const pickInitialPair = React.useCallback((): { left: SubredditInfo; right: SubredditInfo } => {
+    const left = pickRandomInfo();
+    const right = pickDistinctFrom(left.name);
+    return { left, right };
+  }, [pickRandomInfo, pickDistinctFrom]);
+
+  const [pair, setPair] = React.useState(() => pickInitialPair());
   const [picked, setPicked] = React.useState<'left' | 'right' | null>(null);
   const [result, setResult] = React.useState<UseMysteryGameState['result']>(null);
   const [score, setScore] = React.useState(0);
@@ -70,10 +78,22 @@ export function useMysteryGame(entries: SubredditEntry[]): UseMysteryGameReturn 
   const higher: 'left' | 'right' = pair.left.subscribers >= pair.right.subscribers ? 'left' : 'right';
   const revealed = picked != null;
 
-  const nextRound = React.useCallback(() => {
-    setPair(pickRandomPair());
+  // Advance to next round carrying over the previous winner subreddit
+  const nextRound = React.useCallback((winner?: SubredditInfo) => {
+    setPair(prev => {
+      let carry = winner;
+      if (!carry) {
+        // Fallback: choose higher of current pair or random if invalid
+        const higherSub = prev.left.subscribers >= prev.right.subscribers ? prev.left : prev.right;
+        carry = higherSub;
+      }
+      const challenger = pickDistinctFrom(carry.name);
+      // Randomize side to avoid player bias
+      const placeLeft = Math.random() < 0.5;
+      return placeLeft ? { left: carry, right: challenger } : { left: challenger, right: carry };
+    });
     setRound(r => r + 1);
-  }, [pickRandomPair]);
+  }, [pickDistinctFrom]);
 
   const handlePick = (side: 'left' | 'right') => {
     if (picked || gameOver) return; // ignore once selected or after game ends
@@ -81,12 +101,13 @@ export function useMysteryGame(entries: SubredditEntry[]): UseMysteryGameReturn 
     const correct = side === higher;
     setResult({ picked: side, correct });
     if (correct) {
+      const winnerInfo = side === 'left' ? pair.left : pair.right;
       setScore(s => s + 1);
-      // schedule next round after short delay
+      // schedule next round after short delay with winner carried over
       window.setTimeout(() => {
         setResult(null);
         setPicked(null);
-        nextRound();
+        nextRound(winnerInfo);
       }, 1200);
     } else {
       setGameOver(true);
@@ -112,7 +133,9 @@ export function useMysteryGame(entries: SubredditEntry[]): UseMysteryGameReturn 
     setResult(null);
     setPicked(null);
     setRound(0);
-    nextRound();
+    // Recreate an initial fresh pair (both random) then advance by treating left as winner for continuity
+    const initial = pickInitialPair();
+    setPair(initial);
   };
 
   return {
