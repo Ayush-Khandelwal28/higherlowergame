@@ -3,9 +3,10 @@ import React, { useEffect, useRef, useState } from 'react';
 interface CountUpNumberProps {
   value: number;
   durationMs?: number;
+  className?: string;
 }
 
-export const CountUpNumber: React.FC<CountUpNumberProps> = ({ value, durationMs = 1200 }) => {
+export const CountUpNumber: React.FC<CountUpNumberProps> = ({ value, durationMs = 1200, className }) => {
   const [display, setDisplay] = useState(0);
   const startRef = useRef<number | null>(null);
   const fromRef = useRef(0);
@@ -30,7 +31,7 @@ export const CountUpNumber: React.FC<CountUpNumberProps> = ({ value, durationMs 
   }, [value]);
 
   return (
-    <span className="tabular-nums font-semibold text-base sm:text-lg text-gray-800">
+    <span className={["tabular-nums", className || 'font-semibold text-base sm:text-lg text-gray-800'].filter(Boolean).join(' ')}>
       {display.toLocaleString()}
     </span>
   );

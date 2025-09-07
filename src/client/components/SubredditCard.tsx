@@ -16,7 +16,7 @@ export const SubredditCard: React.FC<CardProps> = ({ data, onClick, selected, di
     <button
       onClick={onClick}
       className={[
-        'group relative flex-1 rounded-3xl p-[2px] transition-all duration-300',
+        'group relative flex-1 rounded-3xl p-[2px] transition-all duration-300 overflow-hidden',
         'bg-gradient-to-br from-[#ff4500] via-[#ff8717] to-[#ff4500]',
         dim && 'opacity-60',
         selected && 'scale-[1.02] shadow-xl',
@@ -26,34 +26,50 @@ export const SubredditCard: React.FC<CardProps> = ({ data, onClick, selected, di
       disabled={revealed}
     >
       <div className={[
-        'h-full w-full rounded-[inherit] bg-white/95 backdrop-blur flex flex-col items-center gap-4 p-5 sm:p-6 border border-white/40 shadow-sm relative overflow-hidden',
+        'h-full w-full rounded-[inherit] relative flex flex-col items-center justify-end gap-4 px-5 sm:px-6 pt-8 pb-6',
         'min-h-[260px] sm:min-h-[300px]'
       ].join(' ')}>
-        <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none bg-[radial-gradient(circle_at_30%_30%,rgba(255,69,0,0.15),transparent_60%)]" />
-        <div className="flex flex-col items-center gap-3">
-        <div className="w-20 h-20 rounded-2xl border-2 border-[#ff4500]/30 bg-gradient-to-br from-white via-[#fff5ef] to-[#ffe3d3] flex items-center justify-center overflow-hidden shadow-inner group-hover:border-[#ff4500]/60 transition-colors">
+        {/* Background media */}
+    <div className="absolute inset-0 z-0 rounded-[inherit] overflow-hidden">
           {data.icon ? (
-            <img src={data.icon} alt={data.name} className="w-full h-full object-cover" />
+            <img
+              src={data.icon}
+              alt={data.name}
+        className="w-full h-full object-cover scale-105 group-hover:scale-110 transition-transform duration-700"
+              loading="lazy"
+            />
           ) : (
-            <span className="text-3xl" role="img" aria-label="subreddit">🧿</span>
+            <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-white via-[#fff5ef] to-[#ffe3d3] text-6xl">
+              <span role="img" aria-label="subreddit">🧿</span>
+            </div>
           )}
+      {/* Softer overlay for readability */}
+      <div className="absolute inset-0 bg-gradient-to-b from-black/20 via-black/15 to-black/40" />
+      {/* Subtle accent glow only on hover without hiding logo */}
+      <div className="absolute inset-0 opacity-0 group-hover:opacity-60 transition-opacity duration-500 bg-[radial-gradient(circle_at_30%_30%,rgba(255,135,23,0.25),transparent_65%)]" />
         </div>
-        <div className="text-center">
-          <div className="font-extrabold text-lg sm:text-xl tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-[#ff4500] to-[#ff8717] drop-shadow-sm">r/{data.name}</div>
-          <div className="mt-2 h-8 flex items-center justify-center font-mono text-sm text-[#6a6a6d]">
+
+        {/* Content */}
+        <div className="w-full flex flex-col items-center text-center">
+          <div className="font-extrabold text-lg sm:text-xl tracking-tight text-white drop-shadow-sm">
+            r/{data.name}
+          </div>
+          <div className="mt-3 h-8 flex items-center justify-center font-mono text-sm">
             {!revealed ? (
-              <span className="text-[#ff4500]/50 tracking-wide font-semibold">???</span>
+              <span className="text-white/70 tracking-wide font-semibold">???</span>
             ) : (
-              <CountUpNumber value={data.subscribers} />
+              <CountUpNumber value={data.subscribers} className="text-white font-semibold text-base sm:text-lg drop-shadow" />
             )}
           </div>
         </div>
-      </div>
 
-      {!revealed && (
-        <div className="absolute inset-0 rounded-[inherit] pointer-events-none bg-gradient-to-br from-transparent via-transparent to-[#ff4500]/5" />
-      )}
+        {/* Edge highlight when revealed */}
+        {revealed && (
+          <div className="absolute inset-0 rounded-[inherit] ring-2 ring-white/20 pointer-events-none" />
+        )}
+        {/* Subtle top sheen */}
+        <div className="pointer-events-none absolute inset-x-0 top-0 h-16 bg-gradient-to-b from-white/20 to-transparent mix-blend-overlay" />
       </div>
-  </button>
+    </button>
   );
 };
