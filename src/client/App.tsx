@@ -1,48 +1,21 @@
 import React from 'react';
-import { GameScreen, SubredditInfo } from './components/GameScreen';
+import { LandingPage } from './components/LandingPage';
+import subredditsData from '../../data/subreddits.json';
+import { ClassicPage } from './pages/ClassicPage';
 
-export const App = () => {
-  const [result, setResult] = React.useState<{ picked: 'left' | 'right'; correct: boolean } | null>(
-    null
-  );
+type Route = 'menu' | 'classic';
 
-  const examples: [string, number][] = [
-    ['aww', 36000000],
-    ['gaming', 42000000],
-    ['science', 35000000],
-    ['cats', 2500000],
-    ['technology', 14000000],
-    ['askreddit', 50000000],
-    ['art', 25000000]
-  ];
-  const pick = () => examples[Math.floor(Math.random() * examples.length)] as [string, number];
-  const gen = (): { left: SubredditInfo; right: SubredditInfo } => {
-    let a = pick();
-    let b = pick();
-    while (b === a) b = pick();
-    return {
-      left: { name: a[0], subscribers: a[1] },
-      right: { name: b[0], subscribers: b[1] }
-    };
-  };
-  const [pair, setPair] = React.useState(() => gen());
-  const higher: 'left' | 'right' = pair.left.subscribers >= pair.right.subscribers ? 'left' : 'right';
+export const App: React.FC = () => {
+  const [route, setRoute] = React.useState<Route>('menu');
 
-  const handleGuess = (picked: 'left' | 'right', correct: boolean) => {
-    setResult({ picked, correct });
-    setTimeout(() => {
-      setPair(gen());
-      setResult(null);
-    }, 1500);
-  };
+  if (route === 'classic') {
+    return <ClassicPage onBack={() => setRoute('menu')} />;
+  }
 
   return (
-    <GameScreen
-      left={pair.left}
-      right={pair.right}
-      higher={higher}
-      onGuess={handleGuess}
-      result={result}
+    <LandingPage
+      onClassic={() => setRoute('classic')}
+      totalSubreddits={(subredditsData as any).total}
     />
   );
 };
