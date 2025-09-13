@@ -6,6 +6,7 @@ interface LandingPageProps {
   onTimedMystery: () => void;
   onTimedClassic: () => void;
   onLeaderboard: () => void;
+  onPostWon?: () => void;
   totalSubreddits?: number;
 }
 
@@ -15,6 +16,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
   onTimedMystery,
   onTimedClassic,
   onLeaderboard,
+  onPostWon,
   totalSubreddits,
 }) => {
   const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
@@ -188,6 +190,33 @@ export const LandingPage: React.FC<LandingPageProps> = ({
                   </span>
                   <div className="absolute inset-0 bg-gradient-to-r from-white/20 to-transparent opacity-0 group-hover/btn:opacity-100 transition-opacity" />
                   <div className="absolute -inset-1 bg-gradient-to-r from-green-600 to-blue-600 opacity-75 blur group-hover/btn:opacity-100 transition-opacity" />
+                </button>
+              </div>
+            </div>
+          </div>
+
+          {/* Which Post Won Card */}
+          <div 
+            className={`group relative rounded-3xl bg-gradient-to-br from-white/90 to-white/70 backdrop-blur-lg shadow-2xl p-8 transform transition-all duration-500 hover:scale-105 ${hoveredCard === 'postwon' ? 'shadow-orange-500/50 shadow-3xl' : ''}`}
+            onMouseEnter={() => setHoveredCard('postwon')}
+            onMouseLeave={() => setHoveredCard(null)}
+          >
+            <div className="absolute inset-0 rounded-3xl bg-gradient-to-br from-orange-500/20 to-amber-500/20 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+            <div className="relative z-10">
+              <div className="flex items-center gap-4 mb-6">
+                <div className="text-4xl">📰</div>
+                <h2 className="text-2xl font-black text-gray-800">WHICH POST WON?</h2>
+              </div>
+              <p className="text-gray-600 text-lg mb-8 leading-relaxed">
+                Two posts enter. Only one has more upvotes. Pick the winner!
+              </p>
+              <div>
+                <button
+                  onClick={onPostWon}
+                  className="group/btn relative w-full overflow-hidden rounded-2xl px-8 py-5 font-black text-xl tracking-wide shadow-lg hover:shadow-xl transition-all bg-gradient-to-r from-amber-500 via-orange-500 to-red-500 text-white transform hover:scale-105"
+                >
+                  <span className="relative z-10 flex items-center justify-center gap-3">🔥 Play</span>
+                  <div className="absolute inset-0 bg-gradient-to-r from-white/20 to-transparent opacity-0 group-hover/btn:opacity-100 transition-opacity" />
                 </button>
               </div>
             </div>

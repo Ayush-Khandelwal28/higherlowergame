@@ -32,7 +32,7 @@ export type SubredditInfoResponse = {
 };
 
 // ---- Leaderboard Types ----
-export type LeaderboardMode = 'classic' | 'mystery' | 'timed-classic' | 'timed-mystery';
+export type LeaderboardMode = 'classic' | 'mystery' | 'timed-classic' | 'timed-mystery' | 'post-won';
 
 export interface LeaderboardEntry {
   username: string;
@@ -54,4 +54,28 @@ export interface LeaderboardSubmitResponse {
   accepted: boolean; // true if new high score stored
   previous?: number | null; // previous stored score for user
   best: number; // resulting best after submission (>= previous)
+}
+
+// ---- Posts Fetch Types (Which Post Won) ----
+export interface PostLite {
+  id: string;
+  title: string;
+  author: string | null;
+  permalink: string;
+  score: number; // upvotes
+  createdUtc: number; // seconds since epoch
+  thumbnail?: string | null;
+  isStickied?: boolean;
+  isNsfw?: boolean;
+  isModOrAdmin?: boolean;
+}
+
+export interface PostsFetchResponse {
+  type: 'posts';
+  subreddit: string;
+  timeframe: 'day' | 'week' | 'month' | 'year' | 'all';
+  source: 'top' | 'hot' | 'new';
+  total: number;
+  items: PostLite[];
+  fetchedAt: string; // ISO timestamp
 }
