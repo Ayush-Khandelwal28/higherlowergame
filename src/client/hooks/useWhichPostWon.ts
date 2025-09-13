@@ -40,7 +40,7 @@ function pairWithin(posts: PostLite[], anchor: PostLite, pct: number): PostLite 
 export function useWhichPostWon(opts?: Partial<WhichPostOptions>): WhichPostReturn {
   const defaults: WhichPostOptions = {
     minScore: 10,
-    constrainPercent: 0.2,
+    // constrainPercent: 0.2,
   };
   const config = { ...defaults, ...(opts || {}) };
 

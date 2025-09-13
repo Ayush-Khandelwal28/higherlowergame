@@ -17,10 +17,10 @@ export const LandingPage: React.FC<LandingPageProps> = ({
   onTimedClassic,
   onLeaderboard,
   onPostWon,
-  totalSubreddits,
 }) => {
   const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
   const [hoveredCard, setHoveredCard] = useState<string | null>(null);
+  const [modePicker, setModePicker] = useState<null | 'classic' | 'mystery'>(null);
 
   useEffect(() => {
     const handleMouseMove = (e: MouseEvent) => {
@@ -48,7 +48,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
   ));
 
   return (
-    <div 
+    <div
       className="min-h-screen relative overflow-hidden animate-gradient-shift"
       style={{
         background: `
@@ -85,121 +85,77 @@ export const LandingPage: React.FC<LandingPageProps> = ({
             </h1>
             <div className="absolute -inset-4 bg-gradient-to-r from-orange-600 to-orange-400 opacity-20 blur-xl rounded-full" />
           </div>
-          
+
           <div className="relative p-6 rounded-2xl bg-white/20 backdrop-blur-sm border border-white/30 shadow-2xl">
             <p className="max-w-lg text-lg sm:text-xl text-white font-bold leading-relaxed">
-              🚀 Think you know Reddit? 
+              🚀 Think you know Reddit?
               <br />
-              <span className="text-orange-200 animate-pulse">
+              <span className="text-orange-500 animate-pulse">
                 Guess which subreddit has MORE subscribers!
               </span>
             </p>
           </div>
         </div>
 
-        {/* Enhanced Game Modes */}
-        <div className="grid gap-8 lg:grid-cols-2 w-full max-w-5xl">
-          {/* Streak Mode Card */}
-          <div 
-            className={`group relative rounded-3xl bg-gradient-to-br from-white/90 to-white/70 backdrop-blur-lg shadow-2xl p-8 transform transition-all duration-500 hover:scale-105 hover:rotate-1 ${hoveredCard === 'streak' ? 'shadow-orange-500/50 shadow-3xl' : ''}`}
-            onMouseEnter={() => setHoveredCard('streak')}
+        {/* Simplified Game Modes */}
+        <div className="grid gap-8 lg:grid-cols-3 w-full max-w-6xl">
+          {/* Classic Card */}
+          <div
+            className={`group relative rounded-3xl bg-gradient-to-br from-white/90 to-white/70 backdrop-blur-lg shadow-2xl p-8 transform transition-all duration-500 hover:scale-105 ${hoveredCard === 'classic' ? 'shadow-orange-500/50 shadow-3xl' : ''}`}
+            onMouseEnter={() => setHoveredCard('classic')}
             onMouseLeave={() => setHoveredCard(null)}
+            onClick={() => setModePicker('classic')}
+            role="button"
+            aria-label="Choose Classic Mode"
           >
-            <div className="absolute inset-0 rounded-3xl bg-gradient-to-br from-orange-500/20 to-orange-600/20 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-            
+            <div className="absolute inset-0 rounded-3xl bg-gradient-to-br from-blue-500/15 to-purple-500/15 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
             <div className="relative z-10">
               <div className="flex items-center gap-4 mb-6">
-                <div className="text-4xl animate-spin-slow">🎯</div>
-                <h2 className="text-2xl font-black text-gray-800">
-                  STREAK MODE
-                </h2>
+                <div className="text-4xl">📊</div>
+                <h2 className="text-2xl font-black text-gray-800">CLASSIC</h2>
               </div>
-              
-              <p className="text-gray-600 text-lg mb-8 leading-relaxed">
-                One wrong pick = <span className="text-red-500 font-bold">GAME OVER</span>
-                <br />
-                How legendary can your streak become? 🏆
+              <p className="text-gray-600 text-lg leading-relaxed">
+                Pick which subreddit has more subscribers. Easy to learn, hard to master!
               </p>
-              
-              <div className="space-y-4">
-                <button
-                  onClick={onMystery}
-                  className="group/btn relative w-full overflow-hidden rounded-2xl px-8 py-5 font-black text-xl tracking-wide shadow-lg hover:shadow-xl transition-all bg-gradient-to-r from-orange-500 via-red-500 to-orange-600 text-white transform hover:scale-105"
-                >
-                  <span className="relative z-10 flex items-center justify-center gap-3">
-                    🔮 MYSTERY MODE
-                  </span>
-                  <div className="absolute inset-0 bg-gradient-to-r from-white/20 to-transparent opacity-0 group-hover/btn:opacity-100 transition-opacity" />
-                  <div className="absolute -inset-1 bg-gradient-to-r from-orange-600 to-red-600 opacity-75 blur group-hover/btn:opacity-100 transition-opacity" />
-                </button>
-                
-                <button
-                  onClick={onClassic}
-                  className="group/btn relative w-full overflow-hidden rounded-2xl px-8 py-5 font-black text-xl tracking-wide shadow-lg hover:shadow-xl transition-all bg-gradient-to-r from-blue-500 via-purple-500 to-blue-600 text-white transform hover:scale-105"
-                >
-                  <span className="relative z-10 flex items-center justify-center gap-3">
-                    📊 CLASSIC MODE
-                  </span>
-                  <div className="absolute inset-0 bg-gradient-to-r from-white/20 to-transparent opacity-0 group-hover/btn:opacity-100 transition-opacity" />
-                  <div className="absolute -inset-1 bg-gradient-to-r from-blue-600 to-purple-600 opacity-75 blur group-hover/btn:opacity-100 transition-opacity" />
-                </button>
-              </div>
             </div>
           </div>
 
-          {/* Timed Mode Card */}
-          <div 
-            className={`group relative rounded-3xl bg-gradient-to-br from-white/90 to-white/70 backdrop-blur-lg shadow-2xl p-8 transform transition-all duration-500 hover:scale-105 hover:-rotate-1 ${hoveredCard === 'timed' ? 'shadow-orange-500/50 shadow-3xl' : ''}`}
-            onMouseEnter={() => setHoveredCard('timed')}
+          {/* Mystery Card */}
+          <div
+            className={`group relative rounded-3xl bg-gradient-to-br from-white/90 to-white/70 backdrop-blur-lg shadow-2xl p-8 transform transition-all duration-500 hover:scale-105 ${hoveredCard === 'mystery' ? 'shadow-orange-500/50 shadow-3xl' : ''}`}
+            onMouseEnter={() => setHoveredCard('mystery')}
             onMouseLeave={() => setHoveredCard(null)}
+            onClick={() => setModePicker('mystery')}
+            role="button"
+            aria-label="Choose Mystery Mode"
           >
-            <div className="absolute inset-0 rounded-3xl bg-gradient-to-br from-orange-500/20 to-red-500/20 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-            
+            <div className="absolute inset-0 rounded-3xl bg-gradient-to-br from-orange-500/15 to-red-500/15 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
             <div className="relative z-10">
               <div className="flex items-center gap-4 mb-6">
-                <div className="text-4xl animate-pulse">⏱️</div>
-                <h2 className="text-2xl font-black text-gray-800">
-                  BEAT THE CLOCK
-                </h2>
+                <div className="text-4xl">🔮</div>
+                <h2 className="text-2xl font-black text-gray-800">MYSTERY</h2>
               </div>
-              
-              <p className="text-gray-600 text-lg mb-8 leading-relaxed">
-                <span className="text-red-500 font-bold text-2xl">60 SECONDS</span> of pure adrenaline!
-                <br />
-                Score as many as you can! ⚡
+              <p className="text-gray-600 text-lg leading-relaxed">
+                Hidden subscriber counts. Trust your intuition and vibes.
               </p>
-              
-              <div className="space-y-4">
-                <button
-                  onClick={onTimedMystery}
-                  className="group/btn relative w-full overflow-hidden rounded-2xl px-8 py-5 font-black text-xl tracking-wide shadow-lg hover:shadow-xl transition-all bg-gradient-to-r from-purple-500 via-pink-500 to-red-500 text-white transform hover:scale-105"
-                >
-                  <span className="relative z-10 flex items-center justify-center gap-3">
-                    🔮 MYSTERY RUSH
-                  </span>
-                  <div className="absolute inset-0 bg-gradient-to-r from-white/20 to-transparent opacity-0 group-hover/btn:opacity-100 transition-opacity" />
-                  <div className="absolute -inset-1 bg-gradient-to-r from-purple-600 to-red-600 opacity-75 blur group-hover/btn:opacity-100 transition-opacity" />
-                </button>
-                
-                <button
-                  onClick={onTimedClassic}
-                  className="group/btn relative w-full overflow-hidden rounded-2xl px-8 py-5 font-black text-xl tracking-wide shadow-lg hover:shadow-xl transition-all bg-gradient-to-r from-green-500 via-teal-500 to-blue-500 text-white transform hover:scale-105"
-                >
-                  <span className="relative z-10 flex items-center justify-center gap-3">
-                    📊 CLASSIC RUSH
-                  </span>
-                  <div className="absolute inset-0 bg-gradient-to-r from-white/20 to-transparent opacity-0 group-hover/btn:opacity-100 transition-opacity" />
-                  <div className="absolute -inset-1 bg-gradient-to-r from-green-600 to-blue-600 opacity-75 blur group-hover/btn:opacity-100 transition-opacity" />
-                </button>
-              </div>
             </div>
           </div>
 
           {/* Which Post Won Card */}
-          <div 
+          <div
             className={`group relative rounded-3xl bg-gradient-to-br from-white/90 to-white/70 backdrop-blur-lg shadow-2xl p-8 transform transition-all duration-500 hover:scale-105 ${hoveredCard === 'postwon' ? 'shadow-orange-500/50 shadow-3xl' : ''}`}
             onMouseEnter={() => setHoveredCard('postwon')}
             onMouseLeave={() => setHoveredCard(null)}
+            onClick={onPostWon}
+            role="button"
+            aria-label="Play Which Post Won"
+            tabIndex={0}
+            onKeyDown={(e) => {
+              if ((e.key === 'Enter' || e.key === ' ') && onPostWon) {
+                e.preventDefault();
+                onPostWon();
+              }
+            }}
           >
             <div className="absolute inset-0 rounded-3xl bg-gradient-to-br from-orange-500/20 to-amber-500/20 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
             <div className="relative z-10">
@@ -210,28 +166,61 @@ export const LandingPage: React.FC<LandingPageProps> = ({
               <p className="text-gray-600 text-lg mb-8 leading-relaxed">
                 Two posts enter. Only one has more upvotes. Pick the winner!
               </p>
-              <div>
-                <button
-                  onClick={onPostWon}
-                  className="group/btn relative w-full overflow-hidden rounded-2xl px-8 py-5 font-black text-xl tracking-wide shadow-lg hover:shadow-xl transition-all bg-gradient-to-r from-amber-500 via-orange-500 to-red-500 text-white transform hover:scale-105"
-                >
-                  <span className="relative z-10 flex items-center justify-center gap-3">🔥 Play</span>
-                  <div className="absolute inset-0 bg-gradient-to-r from-white/20 to-transparent opacity-0 group-hover/btn:opacity-100 transition-opacity" />
-                </button>
-              </div>
+
             </div>
           </div>
         </div>
 
+        {/* Sub-mode Picker Overlay */}
+        {modePicker && (
+          <div className="fixed inset-0 z-20 flex items-center justify-center">
+            <div className="absolute inset-0 bg-black/40 backdrop-blur-sm animate-fade-in" onClick={() => setModePicker(null)} />
+            <div className="relative z-30 w-[90%] max-w-md rounded-3xl p-6 sm:p-8 bg-white/90 shadow-2xl border border-white/60 animate-pop">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-xl sm:text-2xl font-black text-gray-800">
+                  {modePicker === 'classic' ? 'Classic' : 'Mystery'} · Choose a mode
+                </h3>
+                <button className="text-gray-500 hover:text-gray-700" onClick={() => setModePicker(null)}>✖</button>
+              </div>
+              <div className="space-y-4">
+                <button
+                  onClick={() => {
+                    setModePicker(null);
+                    modePicker === 'classic' ? onClassic() : onMystery();
+                  }}
+                  className="w-full rounded-2xl px-6 py-5 font-extrabold text-lg text-white shadow-lg bg-gradient-to-r from-orange-500 via-red-500 to-orange-600 hover:scale-[1.02] transition-transform"
+                >
+                  🎯 Streak Based
+                  <div className="text-sm font-semibold opacity-90 mt-1">Keep going until you're wrong</div>
+                </button>
+                <button
+                  onClick={() => {
+                    setModePicker(null);
+                    modePicker === 'classic' ? onTimedClassic() : onTimedMystery();
+                  }}
+                  className="w-full rounded-2xl px-6 py-5 font-extrabold text-lg text-white shadow-lg bg-gradient-to-r from-purple-500 via-pink-500 to-red-500 hover:scale-[1.02] transition-transform"
+                >
+                  ⏱️ Time Based
+                  <div className="text-sm font-semibold opacity-90 mt-1">Race against the clock</div>
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Enhanced Footer */}
         <footer className="mt-16 relative">
-          <div className="flex items-center gap-4 px-8 py-4 rounded-full bg-black/20 backdrop-blur-md border border-white/20 shadow-2xl">
-            <div className="w-3 h-3 bg-green-400 rounded-full animate-pulse"></div>
-            <span className="text-white font-bold tracking-wider text-lg">
-              LIVE DATA • {totalSubreddits?.toLocaleString() ?? '—'} SUBREDDITS
-            </span>
-            <div className="w-3 h-3 bg-orange-400 rounded-full animate-pulse" style={{ animationDelay: '0.5s' }}></div>
-            <button onClick={onLeaderboard} className="ml-4 px-4 py-2 rounded-full bg-white/20 hover:bg-white/30 text-white text-xs font-semibold border border-white/40 transition-colors">🏆 Leaderboards</button>
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-6 w-full max-w-4xl mx-auto">
+            {/* Main Leaderboard Button */}
+            <button
+              onClick={onLeaderboard}
+              className="group relative overflow-hidden rounded-2xl px-8 py-4 bg-gradient-to-r from-yellow-500 via-orange-500 to-red-500 hover:from-yellow-400 hover:via-orange-400 hover:to-red-400 text-white font-black text-lg shadow-2xl transform hover:scale-105 transition-all duration-300"
+            >
+              <div className="absolute inset-0 bg-white/20 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+              <span className="relative flex items-center gap-2">
+                🏆 VIEW LEADERBOARDS
+              </span>
+            </button>
           </div>
         </footer>
       </div>

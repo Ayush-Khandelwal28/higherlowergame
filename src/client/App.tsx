@@ -1,6 +1,5 @@
 import React from 'react';
 import { LandingPage } from './components/LandingPage';
-import subredditsData from '../../data/subreddits.json';
 import { MysteryPage } from './pages/MysteryPage';
 import { ClassicPage } from './pages/ClassicPage';
 import { TimedClassicPage } from './pages/TimedClassicPage';
@@ -34,9 +33,8 @@ export const App: React.FC = () => {
       onClassic={() => setRoute('classic')}
       onTimedMystery={() => setRoute('timed-mystery')}
       onTimedClassic={() => setRoute('timed-classic')}
-  totalSubreddits={(subredditsData as any).total}
-  onLeaderboard={() => setRoute('leaderboard')}
-  onPostWon={() => setRoute('post-won-select')}
+      onLeaderboard={() => setRoute('leaderboard')}
+      onPostWon={() => setRoute('post-won-select')}
     />
   );
 };
