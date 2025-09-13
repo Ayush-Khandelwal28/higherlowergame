@@ -13,19 +13,26 @@ type Route = 'menu' | 'mystery' | 'classic' | 'timed-mystery' | 'timed-classic' 
 export const App: React.FC = () => {
   const [route, setRoute] = React.useState<Route>('menu');
   const [postWonSub, setPostWonSub] = React.useState<string | null>(null);
+  const [initialLeaderboardMode, setInitialLeaderboardMode] = React.useState<'classic' | 'mystery' | 'timed-classic' | 'timed-mystery' | 'post-won'>('classic');
 
   if (route === 'mystery') return <MysteryPage onBack={() => setRoute('menu')} />;
   if (route === 'classic') return <ClassicPage onBack={() => setRoute('menu')} />;
   if (route === 'timed-mystery') return <TimedMysteryPage onBack={() => setRoute('menu')} />;
   if (route === 'timed-classic') return <TimedClassicPage onBack={() => setRoute('menu')} />;
-  if (route === 'leaderboard') return <LeaderboardPage onBack={() => setRoute('menu')} />;
+  if (route === 'leaderboard') return <LeaderboardPage onBack={() => setRoute('menu')} initialMode={initialLeaderboardMode} />;
   if (route === 'post-won-select') return (
     <WhichPostWonSelectPage
       onBack={() => setRoute('menu')}
       onSelect={(s) => { setPostWonSub(s); setRoute('post-won'); }}
     />
   );
-  if (route === 'post-won') return <WhichPostWonPage onBack={() => setRoute('post-won-select')} {...(postWonSub ? { initialSubreddit: postWonSub } : {})} />;
+  if (route === 'post-won') return (
+    <WhichPostWonPage
+      onBack={() => setRoute('post-won-select')}
+      onViewLeaderboard={() => { setInitialLeaderboardMode('post-won'); setRoute('leaderboard'); }}
+      {...(postWonSub ? { initialSubreddit: postWonSub } : {})}
+    />
+  );
 
   return (
     <LandingPage

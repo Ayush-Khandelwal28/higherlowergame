@@ -5,10 +5,11 @@ import { useLeaderboard } from '../hooks/useLeaderboard';
 
 interface PageProps {
   onBack?: () => void;
+  onViewLeaderboard?: () => void;
   initialSubreddit?: string;
 }
 
-export const WhichPostWonPage: React.FC<PageProps> = ({ onBack, initialSubreddit }) => {
+export const WhichPostWonPage: React.FC<PageProps> = ({ onBack, onViewLeaderboard, initialSubreddit }) => {
   const subreddit = initialSubreddit ?? null;
   const game = useWhichPostWon();
 
@@ -35,6 +36,21 @@ export const WhichPostWonPage: React.FC<PageProps> = ({ onBack, initialSubreddit
   // Leaderboard submission for post-won
   const lb = useLeaderboard({ mode: 'post-won', limit: 0 });
   React.useEffect(() => { if (game.gameOver && game.score > 0) lb.submit(game.score); }, [game.gameOver]);
+
+  // Ensure submit completes before navigating to leaderboard
+  const [submittingLB, setSubmittingLB] = React.useState(false);
+  const viewLeaderboard = React.useCallback(async () => {
+    if (submittingLB) return;
+    setSubmittingLB(true);
+    try {
+      if (game.gameOver && game.score > 0) {
+        await lb.submit(game.score);
+      }
+    } finally {
+      setSubmittingLB(false);
+      onViewLeaderboard?.();
+    }
+  }, [game.gameOver, game.score, lb, onViewLeaderboard, submittingLB]);
 
   const disabled = game.loading || game.guessed || game.gameOver || !game.base || !game.challenger;
 
@@ -167,6 +183,9 @@ export const WhichPostWonPage: React.FC<PageProps> = ({ onBack, initialSubreddit
             <h2 className="text-2xl font-extrabold bg-clip-text text-transparent bg-gradient-to-r from-[#ff4500] to-[#ff8717]">Game Over</h2>
             <p className="text-sm text-[#444]">Final Score: <span className="font-bold text-[#ff4500]">{game.score}</span></p>
             <button onClick={game.reset} className="mt-2 px-5 py-2 rounded-full bg-gradient-to-r from-[#ff4500] to-[#ff8717] text-white font-semibold shadow hover:shadow-md transition-all">Play Again</button>
+            <button onClick={viewLeaderboard} disabled={submittingLB} className="mt-1 px-5 py-2 rounded-full bg-white text-[#ff4500] font-semibold border border-[#ff4500]/40 shadow hover:bg-white/80 transition-all disabled:opacity-60">
+              {submittingLB ? 'Updating…' : 'View Leaderboard'}
+            </button>
             {onBack && (
               <button onClick={onBack} className="text-xs text-[#ff4500] underline mt-1">Back to Select</button>
             )}
