@@ -98,7 +98,7 @@ export const BeatTheClock: React.FC<BeatTheClockProps> = ({ variant, onExit }) =
             <SubredditCard side="right" data={classic.challenger} selected={false} dim={false} revealed={!classic.inRound} showSubscribers={!classic.inRound} disabled />
           </div>
           {/* Mobile badge */}
-            <div className="sm:hidden flex items-center justify-center -mt-2 z-30 pointer-events-none">
+            <div className="sm:hidden flex items-center justify-center z-30 pointer-events-none absolute left-1/2 -translate-x-1/2 top-1/2 -translate-y-1/2">
               <div className={[
                 'px-6 py-2 rounded-full font-extrabold text-lg shadow transition-all duration-300',
                 badgeState === 'correct' ? 'bg-gradient-to-r from-green-500 to-emerald-600 text-white animate-result-pop' :
@@ -135,7 +135,7 @@ export const BeatTheClock: React.FC<BeatTheClockProps> = ({ variant, onExit }) =
             revealed={mystery.revealed}
             onPick={mystery.pick}
           />
-          <div className="sm:hidden flex items-center justify-center -mt-2 z-30 pointer-events-none">
+          <div className="sm:hidden flex items-center justify-center z-30 pointer-events-none absolute left-1/2 -translate-x-1/2 top-1/2 -translate-y-1/2">
             <div className={[
               'px-6 py-2 rounded-full font-extrabold text-lg shadow transition-all duration-300',
               badgeState === 'correct' ? 'bg-gradient-to-r from-green-500 to-emerald-600 text-white animate-result-pop' :

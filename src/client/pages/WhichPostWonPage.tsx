@@ -106,7 +106,7 @@ export const WhichPostWonPage: React.FC<PageProps> = ({ onBack, initialSubreddit
         </div>
 
         {/* Mobile badge */}
-        <div className="sm:hidden flex items-center justify-center -mt-2 z-30 pointer-events-none">
+        <div className="sm:hidden flex items-center justify-center z-30 pointer-events-none absolute left-1/2 -translate-x-1/2 top-1/2 -translate-y-1/2">
           <div
             className={[
               'px-6 py-2 rounded-full font-extrabold text-lg shadow transition-all duration-300',
