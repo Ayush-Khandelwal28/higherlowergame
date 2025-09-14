@@ -6,9 +6,10 @@ import { useLeaderboard } from '../hooks/useLeaderboard';
 
 interface MysteryGameProps {
   onExit?: () => void; // optional back handler
+  onViewLeaderboard?: (() => void) | undefined;
 }
 
-export const MysteryGame: React.FC<MysteryGameProps> = ({ onExit }) => {
+export const MysteryGame: React.FC<MysteryGameProps> = ({ onExit, onViewLeaderboard }) => {
   const entries = (subredditsData as any).entries as SubredditEntry[];
   const {
     left,
@@ -46,7 +47,19 @@ export const MysteryGame: React.FC<MysteryGameProps> = ({ onExit }) => {
 
   // Leaderboard submission
   const lb = useLeaderboard({ mode: 'mystery', limit: 0 });
-  React.useEffect(() => { if (gameOver && score > 0) lb.submit(score); }, [gameOver]);
+  React.useEffect(() => { if (gameOver && score > 0) lb.ensureSubmitted(score); }, [gameOver, score]);
+
+  const [submittingLB, setSubmittingLB] = React.useState(false);
+  const viewLeaderboard = React.useCallback(async () => {
+    if (submittingLB) return;
+    setSubmittingLB(true);
+    try {
+      await lb.ensureSubmitted(score);
+    } finally {
+      setSubmittingLB(false);
+      onViewLeaderboard?.();
+    }
+  }, [gameOver, score, lb, onViewLeaderboard, submittingLB]);
 
   return (
     <div className="relative min-h-screen flex flex-col items-center px-4 py-8 gap-8 bg-gradient-to-br from-[#ffe5d6] via-[#fff7f3] to-[#ffffff] text-[#1a1a1b]">
@@ -131,6 +144,7 @@ export const MysteryGame: React.FC<MysteryGameProps> = ({ onExit }) => {
             <h2 className="text-2xl font-extrabold bg-clip-text text-transparent bg-gradient-to-r from-[#ff4500] to-[#ff8717]">Game Over</h2>
             <p className="text-sm text-[#444]">Final Score: <span className="font-bold text-[#ff4500]">{score}</span></p>
             <button onClick={resetGame} className="mt-2 px-5 py-2 rounded-full bg-gradient-to-r from-[#ff4500] to-[#ff8717] text-white font-semibold shadow hover:shadow-md transition-all">Play Again</button>
+            <button onClick={viewLeaderboard} disabled={submittingLB} className="mt-1 px-5 py-2 rounded-full bg-white text-[#ff4500] font-semibold border border-[#ff4500]/40 shadow hover:bg-white/80 transition-all disabled:opacity-60">{submittingLB ? 'Updating…' : 'View Leaderboard'}</button>
             {onExit && (
               <button onClick={onExit} className="text-xs text-[#ff4500] underline mt-1">Back to Menu</button>
             )}

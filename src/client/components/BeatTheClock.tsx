@@ -10,11 +10,11 @@ import { useLeaderboard } from '../hooks/useLeaderboard';
 
 export type TimedVariant = 'classic' | 'mystery';
 
-interface BeatTheClockProps { variant: TimedVariant; onExit?: () => void; }
+interface BeatTheClockProps { variant: TimedVariant; onExit?: () => void; onViewLeaderboard?: (() => void) | undefined }
 
 const DURATION_MS = 60_000;
 
-export const BeatTheClock: React.FC<BeatTheClockProps> = ({ variant, onExit }) => {
+export const BeatTheClock: React.FC<BeatTheClockProps> = ({ variant, onExit, onViewLeaderboard }) => {
   const entries = (subredditsData as any).entries as SubredditEntry[];
   const timer = useCountdown({ durationMs: DURATION_MS, autoStart: true, intervalMs: 200 });
 
@@ -26,7 +26,19 @@ export const BeatTheClock: React.FC<BeatTheClockProps> = ({ variant, onExit }) =
   const mistakes = classic ? classic.mistakes : mystery!.mistakes;
 
   const lb = useLeaderboard({ mode: variant === 'classic' ? 'timed-classic' : 'timed-mystery', limit: 0 });
-  React.useEffect(() => { if (timeUp && score > 0) lb.submit(score); }, [timeUp]);
+  React.useEffect(() => { if (timeUp && score > 0) lb.ensureSubmitted(score); }, [timeUp, score]);
+
+  const [submittingLB, setSubmittingLB] = React.useState(false);
+  const viewLeaderboard = React.useCallback(async () => {
+    if (submittingLB) return;
+    setSubmittingLB(true);
+    try {
+      await lb.ensureSubmitted(score);
+    } finally {
+      setSubmittingLB(false);
+      onViewLeaderboard?.();
+    }
+  }, [score, lb, onViewLeaderboard, submittingLB]);
 
   // Badge feedback (mirrors existing streak modes)
   const [badgeState, setBadgeState] = React.useState<'vs' | 'correct' | 'wrong'>('vs');
@@ -154,6 +166,7 @@ export const BeatTheClock: React.FC<BeatTheClockProps> = ({ variant, onExit }) =
             <h2 className="text-2xl font-extrabold bg-clip-text text-transparent bg-gradient-to-r from-[#ff4500] to-[#ff8717]">Time Up</h2>
             <p className="text-sm text-[#444]">Final Score: <span className="font-bold text-[#ff4500]">{score}</span></p>
             <button onClick={() => { variant === 'classic' ? classic?.reset() : mystery?.reset(); timer.reset(); }} className="mt-2 px-5 py-2 rounded-full bg-gradient-to-r from-[#ff4500] to-[#ff8717] text-white font-semibold shadow hover:shadow-md transition-all">Play Again</button>
+            <button onClick={viewLeaderboard} disabled={submittingLB} className="mt-1 px-5 py-2 rounded-full bg-white text-[#ff4500] font-semibold border border-[#ff4500]/40 shadow hover:bg-white/80 transition-all disabled:opacity-60">{submittingLB ? 'Updating…' : 'View Leaderboard'}</button>
             {onExit && <button onClick={onExit} className="text-xs text-[#ff4500] underline mt-1">Back to Menu</button>}
           </div>
         </div>

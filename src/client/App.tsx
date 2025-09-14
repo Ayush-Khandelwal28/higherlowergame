@@ -15,10 +15,30 @@ export const App: React.FC = () => {
   const [postWonSub, setPostWonSub] = React.useState<string | null>(null);
   const [initialLeaderboardMode, setInitialLeaderboardMode] = React.useState<'classic' | 'mystery' | 'timed-classic' | 'timed-mystery' | 'post-won'>('classic');
 
-  if (route === 'mystery') return <MysteryPage onBack={() => setRoute('menu')} />;
-  if (route === 'classic') return <ClassicPage onBack={() => setRoute('menu')} />;
-  if (route === 'timed-mystery') return <TimedMysteryPage onBack={() => setRoute('menu')} />;
-  if (route === 'timed-classic') return <TimedClassicPage onBack={() => setRoute('menu')} />;
+  if (route === 'mystery') return (
+    <MysteryPage
+      onBack={() => setRoute('menu')}
+      onViewLeaderboard={() => { setInitialLeaderboardMode('mystery'); setRoute('leaderboard'); }}
+    />
+  );
+  if (route === 'classic') return (
+    <ClassicPage
+      onBack={() => setRoute('menu')}
+      onViewLeaderboard={() => { setInitialLeaderboardMode('classic'); setRoute('leaderboard'); }}
+    />
+  );
+  if (route === 'timed-mystery') return (
+    <TimedMysteryPage
+      onBack={() => setRoute('menu')}
+      onViewLeaderboard={() => { setInitialLeaderboardMode('timed-mystery'); setRoute('leaderboard'); }}
+    />
+  );
+  if (route === 'timed-classic') return (
+    <TimedClassicPage
+      onBack={() => setRoute('menu')}
+      onViewLeaderboard={() => { setInitialLeaderboardMode('timed-classic'); setRoute('leaderboard'); }}
+    />
+  );
   if (route === 'leaderboard') return <LeaderboardPage onBack={() => setRoute('menu')} initialMode={initialLeaderboardMode} />;
   if (route === 'post-won-select') return (
     <WhichPostWonSelectPage

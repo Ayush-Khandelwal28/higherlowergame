@@ -35,7 +35,7 @@ export const WhichPostWonPage: React.FC<PageProps> = ({ onBack, onViewLeaderboar
 
   // Leaderboard submission for post-won
   const lb = useLeaderboard({ mode: 'post-won', limit: 0 });
-  React.useEffect(() => { if (game.gameOver && game.score > 0) lb.submit(game.score); }, [game.gameOver]);
+  React.useEffect(() => { if (game.gameOver && game.score > 0) lb.ensureSubmitted(game.score); }, [game.gameOver, game.score]);
 
   // Ensure submit completes before navigating to leaderboard
   const [submittingLB, setSubmittingLB] = React.useState(false);
@@ -43,9 +43,7 @@ export const WhichPostWonPage: React.FC<PageProps> = ({ onBack, onViewLeaderboar
     if (submittingLB) return;
     setSubmittingLB(true);
     try {
-      if (game.gameOver && game.score > 0) {
-        await lb.submit(game.score);
-      }
+      await lb.ensureSubmitted(game.score);
     } finally {
       setSubmittingLB(false);
       onViewLeaderboard?.();

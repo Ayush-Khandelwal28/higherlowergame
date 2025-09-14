@@ -18,6 +18,8 @@ export interface UseLeaderboardState {
 export interface UseLeaderboardReturn extends UseLeaderboardState {
   refresh: () => void;
   submit: (score: number) => Promise<LeaderboardSubmitResponse | null>;
+  ensureSubmitted: (score: number) => Promise<void>;
+  submitting: boolean;
 }
 
 export function useLeaderboard(opts: UseLeaderboardOptions): UseLeaderboardReturn {
@@ -29,6 +31,9 @@ export function useLeaderboard(opts: UseLeaderboardOptions): UseLeaderboardRetur
     user: null,
     fetchedAt: null,
   });
+  const inFlightRef = React.useRef<Promise<void> | null>(null);
+  const lastSubmittedRef = React.useRef<number | null>(null);
+  const [submitting, setSubmitting] = React.useState(false);
 
   const fetchBoard = React.useCallback(async () => {
     setState(s => ({ ...s, loading: true, error: null }));
@@ -59,6 +64,8 @@ export function useLeaderboard(opts: UseLeaderboardOptions): UseLeaderboardRetur
 
   const submit = React.useCallback(async (score: number) => {
     try {
+      if (typeof score !== 'number' || score <= 0) return null;
+      setSubmitting(true);
       const res = await fetch('/api/leaderboard/submit', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -68,11 +75,28 @@ export function useLeaderboard(opts: UseLeaderboardOptions): UseLeaderboardRetur
       const data: LeaderboardSubmitResponse = await res.json();
       // refresh after submit if accepted
       if (data.accepted) fetchBoard();
+      lastSubmittedRef.current = Math.max(lastSubmittedRef.current ?? 0, score);
       return data;
     } catch (_e) {
       return null;
+    } finally {
+      setSubmitting(false);
     }
   }, [mode, fetchBoard]);
 
-  return { ...state, refresh: fetchBoard, submit };
+  const ensureSubmitted = React.useCallback(async (score: number) => {
+    if (typeof score !== 'number' || score <= 0) return;
+    if (lastSubmittedRef.current != null && lastSubmittedRef.current >= score) return;
+    if (inFlightRef.current) {
+      await inFlightRef.current;
+      if (lastSubmittedRef.current != null && lastSubmittedRef.current >= score) return;
+    }
+    const p = (async () => {
+      await submit(score);
+    })().finally(() => { inFlightRef.current = null; });
+    inFlightRef.current = p;
+    await p;
+  }, [submit]);
+
+  return { ...state, refresh: fetchBoard, submit, ensureSubmitted, submitting };
 }
