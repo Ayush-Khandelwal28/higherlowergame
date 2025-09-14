@@ -10,11 +10,11 @@ import { useLeaderboard } from '../hooks/useLeaderboard';
 
 export type TimedVariant = 'classic' | 'mystery';
 
-interface BeatTheClockProps { variant: TimedVariant; onExit?: () => void; }
+interface BeatTheClockProps { variant: TimedVariant; onExit?: () => void; onViewLeaderboard?: () => void; }
 
 const DURATION_MS = 60_000;
 
-export const BeatTheClock: React.FC<BeatTheClockProps> = ({ variant, onExit }) => {
+export const BeatTheClock: React.FC<BeatTheClockProps> = ({ variant, onExit, onViewLeaderboard }) => {
   const entries = (subredditsData as any).entries as SubredditEntry[];
   const timer = useCountdown({ durationMs: DURATION_MS, autoStart: true, intervalMs: 200 });
 
@@ -27,6 +27,21 @@ export const BeatTheClock: React.FC<BeatTheClockProps> = ({ variant, onExit }) =
 
   const lb = useLeaderboard({ mode: variant === 'classic' ? 'timed-classic' : 'timed-mystery', limit: 0 });
   React.useEffect(() => { if (timeUp && score > 0) lb.submit(score); }, [timeUp]);
+
+  // Ensure submit completes before navigating to leaderboard
+  const [submittingLB, setSubmittingLB] = React.useState(false);
+  const viewLeaderboard = React.useCallback(async () => {
+    if (submittingLB) return;
+    setSubmittingLB(true);
+    try {
+      if (timeUp && score > 0) {
+        await lb.submit(score);
+      }
+    } finally {
+      setSubmittingLB(false);
+      onViewLeaderboard?.();
+    }
+  }, [timeUp, score, lb, onViewLeaderboard, submittingLB]);
 
   // Badge feedback (mirrors existing streak modes)
   const [badgeState, setBadgeState] = React.useState<'vs' | 'correct' | 'wrong'>('vs');
@@ -81,6 +96,7 @@ export const BeatTheClock: React.FC<BeatTheClockProps> = ({ variant, onExit }) =
 
       {/* Game area */}
       {(variant === 'classic' && classic) && (
+        <>
         <div className="relative w-full flex flex-col items-center">
           {/* Badge */}
           <div className="hidden sm:flex absolute left-1/2 -translate-x-1/2 top-1/2 -translate-y-1/2 z-30 pointer-events-none">
@@ -98,21 +114,22 @@ export const BeatTheClock: React.FC<BeatTheClockProps> = ({ variant, onExit }) =
             <SubredditCard side="right" data={classic.challenger} selected={false} dim={false} revealed={!classic.inRound} showSubscribers={!classic.inRound} disabled />
           </div>
           {/* Mobile badge */}
-            <div className="sm:hidden flex items-center justify-center z-30 pointer-events-none absolute left-1/2 -translate-x-1/2 top-1/2 -translate-y-1/2">
-              <div className={[
-                'px-6 py-2 rounded-full font-extrabold text-lg shadow transition-all duration-300',
-                badgeState === 'correct' ? 'bg-gradient-to-r from-green-500 to-emerald-600 text-white animate-result-pop' :
-                badgeState === 'wrong' ? 'bg-gradient-to-r from-red-500 to-rose-600 text-white animate-result-pop' :
-                'bg-gradient-to-r from-[#ff4500] to-[#ff8717] text-white ' + (swapAnim ? 'animate-badge-swap' : 'animate-pulse-glow')
-              ].join(' ')}>
-                {badgeState === 'correct' ? '✓' : badgeState === 'wrong' ? '✕' : 'VS'}
-              </div>
+          <div className="sm:hidden flex items-center justify-center z-30 pointer-events-none absolute left-1/2 -translate-x-1/2 top-1/2 -translate-y-1/2">
+            <div className={[
+              'px-6 py-2 rounded-full font-extrabold text-lg shadow transition-all duration-300',
+              badgeState === 'correct' ? 'bg-gradient-to-r from-green-500 to-emerald-600 text-white animate-result-pop' :
+              badgeState === 'wrong' ? 'bg-gradient-to-r from-red-500 to-rose-600 text-white animate-result-pop' :
+              'bg-gradient-to-r from-[#ff4500] to-[#ff8717] text-white ' + (swapAnim ? 'animate-badge-swap' : 'animate-pulse-glow')
+            ].join(' ')}>
+              {badgeState === 'correct' ? '✓' : badgeState === 'wrong' ? '✕' : 'VS'}
             </div>
-          <div className="flex gap-4 mt-6">
-            <button disabled={!classic.inRound || timeUp} onClick={() => classic.guess('higher')} className="px-6 py-3 rounded-full font-bold text-sm tracking-wide bg-white/90 hover:bg-white transition-colors border border-[#ff4500]/30 text-[#ff4500] shadow disabled:opacity-50">Higher</button>
-            <button disabled={!classic.inRound || timeUp} onClick={() => classic.guess('lower')} className="px-6 py-3 rounded-full font-bold text-sm tracking-wide bg-white/90 hover:bg-white transition-colors border border-[#ff4500]/30 text-[#ff4500] shadow disabled:opacity-50">Lower</button>
           </div>
         </div>
+        <div className="flex gap-4 mt-6">
+          <button disabled={!classic.inRound || timeUp} onClick={() => classic.guess('higher')} className="px-6 py-3 rounded-full font-bold text-sm tracking-wide bg-white/90 hover:bg-white transition-colors border border-[#ff4500]/30 text-[#ff4500] shadow disabled:opacity-50">Higher</button>
+          <button disabled={!classic.inRound || timeUp} onClick={() => classic.guess('lower')} className="px-6 py-3 rounded-full font-bold text-sm tracking-wide bg-white/90 hover:bg-white transition-colors border border-[#ff4500]/30 text-[#ff4500] shadow disabled:opacity-50">Lower</button>
+        </div>
+        </>
       )}
 
       {(variant === 'mystery' && mystery) && (
@@ -154,7 +171,10 @@ export const BeatTheClock: React.FC<BeatTheClockProps> = ({ variant, onExit }) =
             <h2 className="text-2xl font-extrabold bg-clip-text text-transparent bg-gradient-to-r from-[#ff4500] to-[#ff8717]">Time Up</h2>
             <p className="text-sm text-[#444]">Final Score: <span className="font-bold text-[#ff4500]">{score}</span></p>
             <button onClick={() => { variant === 'classic' ? classic?.reset() : mystery?.reset(); timer.reset(); }} className="mt-2 px-5 py-2 rounded-full bg-gradient-to-r from-[#ff4500] to-[#ff8717] text-white font-semibold shadow hover:shadow-md transition-all">Play Again</button>
-            {onExit && <button onClick={onExit} className="text-xs text-[#ff4500] underline mt-1">Back to Menu</button>}
+            <button onClick={viewLeaderboard} disabled={submittingLB} className="mt-1 px-5 py-2 rounded-full bg-white text-[#ff4500] font-semibold border border-[#ff4500]/40 shadow hover:bg-white/80 transition-all disabled:opacity-60">
+              {submittingLB ? 'Updating…' : 'View Leaderboard'}
+            </button>
+            {onExit && <button onClick={onExit} className="text-xs text-[#ff4500] underline">Back to Menu</button>}
           </div>
         </div>
       )}
