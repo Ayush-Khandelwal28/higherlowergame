@@ -48,7 +48,7 @@ export const App: React.FC = () => {
   );
   if (route === 'post-won') return (
     <WhichPostWonPage
-      onBack={() => setRoute('post-won-select')}
+      onBack={() => setRoute('menu')}
       onViewLeaderboard={() => { setInitialLeaderboardMode('post-won'); setRoute('leaderboard'); }}
       {...(postWonSub ? { initialSubreddit: postWonSub } : {})}
     />

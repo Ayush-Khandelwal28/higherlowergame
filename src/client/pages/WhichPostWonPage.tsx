@@ -59,7 +59,7 @@ export const WhichPostWonPage: React.FC<PageProps> = ({ onBack, onViewLeaderboar
       <div className="min-h-screen flex flex-col items-center justify-center px-4 py-8 gap-6 bg-gradient-to-br from-[#ffe5d6] via-[#fff7f3] to-[#ffffff] text-[#1a1a1b]">
         <div className="bg-white rounded-3xl p-8 flex flex-col items-center gap-4 w-[min(90%,420px)] shadow-xl border border-[#ff4500]/30">
           <h2 className="text-xl font-extrabold bg-clip-text text-transparent bg-gradient-to-r from-[#ff4500] to-[#ff8717]">Pick a subreddit first</h2>
-          {onBack && <button onClick={onBack} className="px-5 py-2 rounded-full bg-gradient-to-r from-[#ff4500] to-[#ff8717] text-white font-semibold shadow hover:shadow-md transition-all">Choose Subreddit</button>}
+          {onBack && <button onClick={onBack} className="px-5 py-2 rounded-full bg-gradient-to-r from-[#ff4500] to-[#ff8717] text-white font-semibold shadow hover:shadow-md transition-all">Menu</button>}
         </div>
       </div>
     );
@@ -81,7 +81,7 @@ export const WhichPostWonPage: React.FC<PageProps> = ({ onBack, onViewLeaderboar
           <div className="px-4 py-2 rounded-xl bg-white/80 backdrop-blur border border-[#ff4500]/30 shadow font-semibold text-xs text-[#ff4500]">Score: {game.score}</div>
           <div className="px-4 py-2 rounded-xl bg-white/80 backdrop-blur border border-[#ff4500]/30 shadow font-semibold text-xs text-[#ff4500]">Best: {game.best}</div>
           {onBack && (
-            <button onClick={onBack} className="px-3 py-2 rounded-lg bg-white/70 hover:bg-white/90 transition-colors border border-[#ff4500]/30 text-[10px] font-semibold text-[#ff4500] shadow-sm">Change Subreddit</button>
+            <button onClick={onBack} className="px-3 py-2 rounded-lg bg-white/70 hover:bg-white/90 transition-colors border border-[#ff4500]/30 text-[10px] font-semibold text-[#ff4500] shadow-sm">Menu</button>
           )}
         </div>
       </div>

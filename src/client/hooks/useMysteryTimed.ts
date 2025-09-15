@@ -77,7 +77,7 @@ export function useMysteryTimed(entries: SubredditEntry[]): UseMysteryTimedRetur
     setResult({ picked: side, correct });
     if (correct) setScore(s => s + 1); else setMistakes(m => m + 1);
     window.setTimeout(() => {
-      const winnerInfo = side === higher ? (side === 'left' ? pair.left : pair.right) : (higher === 'left' ? pair.left : pair.right);
+      const winnerInfo = side === 'left' ? pair.left : pair.right; // carry the user's picked tile regardless of correctness
       setPicked(null);
       setResult(null); // clear for next round start
       advance(winnerInfo);

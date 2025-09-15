@@ -1,4 +1,5 @@
 import React from 'react';
+import upvoteIcon from '../../../assets/reddit_upvote.png';
 import type { PostLite } from '../../shared/types/api';
 
 interface PostCardProps {
@@ -42,6 +43,28 @@ export const PostCard: React.FC<PostCardProps> = ({ post, onClick, selected, dim
           ) : (
             <div className="w-full h-full flex items-center justify-center text-5xl">📰</div>
           )}
+
+          {/* Prominent Upvotes Badge */}
+          <div className="absolute top-2 left-2 z-10">
+            <div
+              className="flex items-center gap-2 rounded-full px-3 py-1.5 sm:px-4 sm:py-2 bg-white/95 backdrop-blur border border-[#ff4500]/30 shadow-lg"
+              aria-label={revealed ? `${post.score.toLocaleString()} upvotes` : 'Upvotes hidden'}
+            >
+              <img
+                src={upvoteIcon}
+                alt="upvote"
+                className="w-4 h-4 sm:w-5 sm:h-5 select-none"
+                aria-hidden
+                draggable={false}
+              />
+              <span className="text-sm sm:text-lg font-extrabold tracking-tight text-[#1a1a1b] font-mono" aria-hidden>
+                {revealed ? post.score.toLocaleString() : '???'}
+              </span>
+              <span className="text-[10px] sm:text-xs font-semibold text-[#7c7c7c]" aria-hidden>
+                upvotes
+              </span>
+            </div>
+          </div>
         </div>
 
         {/* Content */}
@@ -49,9 +72,6 @@ export const PostCard: React.FC<PostCardProps> = ({ post, onClick, selected, dim
           <div className="text-sm sm:text-base font-bold text-[#1a1a1b] break-words whitespace-normal">{post.title}</div>
           <div className="flex items-center justify-between text-xs text-[#7c7c7c]">
             <span>u/{post.author ?? 'unknown'}</span>
-            <span className="font-mono">
-              {revealed ? `${post.score.toLocaleString()} pts` : '???'}
-            </span>
           </div>
         </div>
 
