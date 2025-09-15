@@ -117,6 +117,7 @@ export const WhichPostWonPage: React.FC<PageProps> = ({ onBack, onViewLeaderboar
             selected={false}
             dim={false}
             revealed={game.guessed}
+            animateOnReveal
             disabled
           />
         </div>

@@ -1,6 +1,7 @@
 import React from 'react';
 import upvoteIcon from '../../../assets/reddit_upvote.png';
 import type { PostLite } from '../../shared/types/api';
+import { CountUpNumber } from './atoms/CountUpNumber';
 
 interface PostCardProps {
   post: PostLite;
@@ -9,9 +10,11 @@ interface PostCardProps {
   dim?: boolean;
   revealed?: boolean;
   disabled?: boolean;
+  /** If true, animate the score counting up when it becomes revealed */
+  animateOnReveal?: boolean;
 }
 
-export const PostCard: React.FC<PostCardProps> = ({ post, onClick, selected, dim, revealed, disabled }) => {
+export const PostCard: React.FC<PostCardProps> = ({ post, onClick, selected, dim, revealed, disabled, animateOnReveal }) => {
   return (
     <button
       onClick={onClick}
@@ -57,9 +60,22 @@ export const PostCard: React.FC<PostCardProps> = ({ post, onClick, selected, dim
                 aria-hidden
                 draggable={false}
               />
-              <span className="text-sm sm:text-lg font-extrabold tracking-tight text-[#1a1a1b] font-mono" aria-hidden>
-                {revealed ? post.score.toLocaleString() : '???'}
-              </span>
+              {revealed ? (
+                animateOnReveal ? (
+                  <CountUpNumber
+                    value={post.score}
+                    className="text-sm sm:text-lg font-extrabold tracking-tight text-[#1a1a1b] font-mono"
+                  />
+                ) : (
+                  <span className="text-sm sm:text-lg font-extrabold tracking-tight text-[#1a1a1b] font-mono" aria-hidden>
+                    {post.score.toLocaleString()}
+                  </span>
+                )
+              ) : (
+                <span className="text-sm sm:text-lg font-extrabold tracking-tight text-[#1a1a1b] font-mono" aria-hidden>
+                  {'???'}
+                </span>
+              )}
               <span className="text-[10px] sm:text-xs font-semibold text-[#7c7c7c]" aria-hidden>
                 upvotes
               </span>

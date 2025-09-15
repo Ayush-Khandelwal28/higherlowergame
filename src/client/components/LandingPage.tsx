@@ -99,76 +99,66 @@ export const LandingPage: React.FC<LandingPageProps> = ({
 
         {/* Simplified Game Modes */}
         <div className="grid gap-8 lg:grid-cols-3 w-full max-w-6xl">
-          {/* Classic Card */}
-          <div
-            className={`group relative rounded-3xl bg-gradient-to-br from-white/90 to-white/70 backdrop-blur-lg shadow-2xl p-8 transform transition-all duration-500 hover:scale-105 ${hoveredCard === 'classic' ? 'shadow-orange-500/50 shadow-3xl' : ''}`}
-            onMouseEnter={() => setHoveredCard('classic')}
-            onMouseLeave={() => setHoveredCard(null)}
-            onClick={() => setModePicker('classic')}
-            role="button"
-            aria-label="Choose Classic Mode"
-          >
-            <div className="absolute inset-0 rounded-3xl bg-gradient-to-br from-blue-500/15 to-purple-500/15 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-            <div className="relative z-10">
-              <div className="flex items-center gap-4 mb-6">
-                <div className="text-4xl">📊</div>
-                <h2 className="text-2xl font-black text-gray-800">CLASSIC</h2>
+          {[
+            {
+              key: 'classic' as const,
+              title: 'CLASSIC',
+              emoji: '📊',
+              description: 'Pick which subreddit has more subscribers. Easy to learn, hard to master!',
+              overlayGradient: 'from-blue-500/15 to-purple-500/15',
+              onClick: () => setModePicker('classic' as const),
+              ariaLabel: 'Choose Classic Mode',
+              withKeydown: false,
+            },
+            {
+              key: 'mystery' as const,
+              title: 'MYSTERY',
+              emoji: '🔮',
+              description: 'Hidden subscriber counts. Trust your intuition and vibes.',
+              overlayGradient: 'from-orange-500/15 to-red-500/15',
+              onClick: () => setModePicker('mystery' as const),
+              ariaLabel: 'Choose Mystery Mode',
+              withKeydown: false,
+            },
+            {
+              key: 'postwon' as const,
+              title: 'VERSUS',
+              emoji: '🆚',
+              description: 'Two posts enter. Only one has more upvotes. Pick the winner!',
+              overlayGradient: 'from-orange-500/20 to-amber-500/20',
+              onClick: onPostWon,
+              ariaLabel: 'Play Versus',
+              withKeydown: true,
+            },
+          ].map((tile) => (
+            <div
+              key={tile.key}
+              className={`group relative rounded-3xl bg-gradient-to-br from-white/90 to-white/70 backdrop-blur-lg shadow-2xl p-8 transform transition-all duration-500 hover:scale-105 ${hoveredCard === tile.key ? 'shadow-orange-500/50 shadow-3xl' : ''}`}
+              onMouseEnter={() => setHoveredCard(tile.key)}
+              onMouseLeave={() => setHoveredCard(null)}
+              onClick={tile.onClick}
+              role="button"
+              aria-label={tile.ariaLabel}
+              tabIndex={tile.withKeydown ? 0 : undefined}
+              onKeyDown={tile.withKeydown ? (e) => {
+                if ((e.key === 'Enter' || e.key === ' ') && onPostWon) {
+                  e.preventDefault();
+                  onPostWon();
+                }
+              } : undefined}
+            >
+              <div className={`absolute inset-0 rounded-3xl bg-gradient-to-br ${tile.overlayGradient} opacity-0 group-hover:opacity-100 transition-opacity duration-500`} />
+              <div className="relative z-10">
+                <div className="flex items-center gap-4 mb-6">
+                  <div className="text-4xl">{tile.emoji}</div>
+                  <h2 className="text-2xl font-black text-gray-800">{tile.title}</h2>
+                </div>
+                <p className="text-gray-600 text-lg leading-relaxed">
+                  {tile.description}
+                </p>
               </div>
-              <p className="text-gray-600 text-lg leading-relaxed">
-                Pick which subreddit has more subscribers. Easy to learn, hard to master!
-              </p>
             </div>
-          </div>
-
-          {/* Mystery Card */}
-          <div
-            className={`group relative rounded-3xl bg-gradient-to-br from-white/90 to-white/70 backdrop-blur-lg shadow-2xl p-8 transform transition-all duration-500 hover:scale-105 ${hoveredCard === 'mystery' ? 'shadow-orange-500/50 shadow-3xl' : ''}`}
-            onMouseEnter={() => setHoveredCard('mystery')}
-            onMouseLeave={() => setHoveredCard(null)}
-            onClick={() => setModePicker('mystery')}
-            role="button"
-            aria-label="Choose Mystery Mode"
-          >
-            <div className="absolute inset-0 rounded-3xl bg-gradient-to-br from-orange-500/15 to-red-500/15 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-            <div className="relative z-10">
-              <div className="flex items-center gap-4 mb-6">
-                <div className="text-4xl">🔮</div>
-                <h2 className="text-2xl font-black text-gray-800">MYSTERY</h2>
-              </div>
-              <p className="text-gray-600 text-lg leading-relaxed">
-                Hidden subscriber counts. Trust your intuition and vibes.
-              </p>
-            </div>
-          </div>
-
-          {/* Versus Card */}
-          <div
-            className={`group relative rounded-3xl bg-gradient-to-br from-white/90 to-white/70 backdrop-blur-lg shadow-2xl p-8 transform transition-all duration-500 hover:scale-105 ${hoveredCard === 'postwon' ? 'shadow-orange-500/50 shadow-3xl' : ''}`}
-            onMouseEnter={() => setHoveredCard('postwon')}
-            onMouseLeave={() => setHoveredCard(null)}
-            onClick={onPostWon}
-            role="button"
-            aria-label="Play Versus"
-            tabIndex={0}
-            onKeyDown={(e) => {
-              if ((e.key === 'Enter' || e.key === ' ') && onPostWon) {
-                e.preventDefault();
-                onPostWon();
-              }
-            }}
-          >
-            <div className="absolute inset-0 rounded-3xl bg-gradient-to-br from-orange-500/20 to-amber-500/20 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-            <div className="relative z-10">
-              <div className="flex items-center gap-4 mb-6">
-                <div className="text-4xl">🆚</div>
-                <h2 className="text-2xl font-black text-gray-800">VERSUS</h2>
-              </div>
-              <p className="text-gray-600 text-lg mb-8 leading-relaxed">
-                Two posts enter. Only one has more upvotes. Pick the winner!
-              </p>
-
-            </div>
-          </div>
+          ))}
         </div>
 
         {/* Sub-mode Picker Overlay */}
