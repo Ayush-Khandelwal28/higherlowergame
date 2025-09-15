@@ -30,25 +30,28 @@ export function useMysteryTimed(entries: SubredditEntry[]): UseMysteryTimedRetur
     [entries]
   );
 
-  const randomInfo = React.useCallback((): SubredditInfo => {
+  // History-aware random picker to avoid immediate repeats
+  const recentNamesRef = React.useRef<string[]>([]);
+
+  const pickRandomExcluding = React.useCallback((exclude: Set<string>): SubredditInfo => {
     if (!usable.length) return { name: 'N/A', subscribers: 0, icon: null };
-    const i = Math.floor(Math.random() * usable.length);
-    return toInfo(usable[i]!);
+    const candidates = usable.filter(e => !exclude.has(e.name));
+    const pool = candidates.length > 0 ? candidates : usable;
+    const i = Math.floor(Math.random() * pool.length);
+    return toInfo(pool[i]!);
   }, [usable]);
 
-  const pickDistinct = React.useCallback((exclude: string): SubredditInfo => {
-    if (usable.length < 2) return randomInfo();
-    let info = randomInfo();
-    let guard = 0;
-    while (info.name === exclude && guard < 20) { info = randomInfo(); guard++; }
-    return info;
-  }, [usable, randomInfo]);
-
   const initialPair = React.useCallback(() => {
-    const left = randomInfo();
-    const right = pickDistinct(left.name);
+    const exclude = new Set(recentNamesRef.current);
+    let left = pickRandomExcluding(exclude);
+    exclude.add(left.name);
+    let right = pickRandomExcluding(exclude);
+    if (right.name === left.name) {
+      exclude.add(right.name);
+      right = pickRandomExcluding(exclude);
+    }
     return { left, right };
-  }, [randomInfo, pickDistinct]);
+  }, [pickRandomExcluding]);
 
   const [pair, setPair] = React.useState(() => initialPair());
   const [picked, setPicked] = React.useState<'left' | 'right' | null>(null);
@@ -60,15 +63,11 @@ export function useMysteryTimed(entries: SubredditEntry[]): UseMysteryTimedRetur
   const higher: 'left' | 'right' = pair.left.subscribers >= pair.right.subscribers ? 'left' : 'right';
   const revealed = picked != null;
 
-  const advance = React.useCallback((winner?: SubredditInfo) => {
-    setPair(prev => {
-      let carry = winner ?? (prev.left.subscribers >= prev.right.subscribers ? prev.left : prev.right);
-      const challenger = pickDistinct(carry.name);
-      const placeLeft = Math.random() < 0.5;
-      return placeLeft ? { left: carry, right: challenger } : { left: challenger, right: carry };
-    });
+  // Advance with two fresh tiles each round (no carryover)
+  const advance = React.useCallback(() => {
+    setPair(() => initialPair());
     setRound(r => r + 1);
-  }, [pickDistinct]);
+  }, [initialPair]);
 
   const pick = (side: 'left' | 'right') => {
     if (picked) return;
@@ -77,10 +76,9 @@ export function useMysteryTimed(entries: SubredditEntry[]): UseMysteryTimedRetur
     setResult({ picked: side, correct });
     if (correct) setScore(s => s + 1); else setMistakes(m => m + 1);
     window.setTimeout(() => {
-      const winnerInfo = side === 'left' ? pair.left : pair.right; // carry the user's picked tile regardless of correctness
       setPicked(null);
       setResult(null); // clear for next round start
-      advance(winnerInfo);
+      advance();
     }, 900); // slight delay for badge animation parity
   };
 
@@ -90,8 +88,19 @@ export function useMysteryTimed(entries: SubredditEntry[]): UseMysteryTimedRetur
     setPicked(null);
     setResult(null);
     setRound(0);
+    recentNamesRef.current = [];
     setPair(initialPair());
   };
+
+  // Add to recent history and trim
+  React.useEffect(() => {
+    const arr = recentNamesRef.current;
+    arr.push(pair.left.name, pair.right.name);
+    const max = 16; // HISTORY_LIMIT * 2; keep local to avoid cross-file import
+    if (arr.length > max) {
+      arr.splice(0, arr.length - max);
+    }
+  }, [pair.left.name, pair.right.name]);
 
   return { left: pair.left, right: pair.right, picked, revealed, score, mistakes, round, result, pick, reset };
 }
