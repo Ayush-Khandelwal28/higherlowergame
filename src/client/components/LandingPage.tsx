@@ -141,14 +141,14 @@ export const LandingPage: React.FC<LandingPageProps> = ({
             </div>
           </div>
 
-          {/* Which Post Won Card */}
+          {/* Versus Card */}
           <div
             className={`group relative rounded-3xl bg-gradient-to-br from-white/90 to-white/70 backdrop-blur-lg shadow-2xl p-8 transform transition-all duration-500 hover:scale-105 ${hoveredCard === 'postwon' ? 'shadow-orange-500/50 shadow-3xl' : ''}`}
             onMouseEnter={() => setHoveredCard('postwon')}
             onMouseLeave={() => setHoveredCard(null)}
             onClick={onPostWon}
             role="button"
-            aria-label="Play Which Post Won"
+            aria-label="Play Versus"
             tabIndex={0}
             onKeyDown={(e) => {
               if ((e.key === 'Enter' || e.key === ' ') && onPostWon) {
@@ -160,8 +160,8 @@ export const LandingPage: React.FC<LandingPageProps> = ({
             <div className="absolute inset-0 rounded-3xl bg-gradient-to-br from-orange-500/20 to-amber-500/20 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
             <div className="relative z-10">
               <div className="flex items-center gap-4 mb-6">
-                <div className="text-4xl">📰</div>
-                <h2 className="text-2xl font-black text-gray-800">WHICH POST WON?</h2>
+                <div className="text-4xl">🆚</div>
+                <h2 className="text-2xl font-black text-gray-800">VERSUS</h2>
               </div>
               <p className="text-gray-600 text-lg mb-8 leading-relaxed">
                 Two posts enter. Only one has more upvotes. Pick the winner!

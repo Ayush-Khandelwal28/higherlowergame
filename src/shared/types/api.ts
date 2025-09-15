@@ -56,7 +56,7 @@ export interface LeaderboardSubmitResponse {
   best: number; // resulting best after submission (>= previous)
 }
 
-// ---- Posts Fetch Types (Which Post Won) ----
+// ---- Posts Fetch Types (Versus) ----
 export interface PostLite {
   id: string;
   title: string;

@@ -71,7 +71,7 @@ export const WhichPostWonPage: React.FC<PageProps> = ({ onBack, onViewLeaderboar
       <div className="flex flex-col items-center gap-2">
         <h1 className="text-center text-2xl sm:text-3xl font-extrabold tracking-tight">
           <span className="bg-clip-text text-transparent bg-gradient-to-r from-[#ff4500] via-[#ff8717] to-[#ff4500] drop-shadow-sm">
-            Which Post Won · r/{subreddit}
+            Versus · r/{subreddit}
           </span>
           <span className="block mt-1 text-xs font-medium text-[#ff4500]/70 tracking-wider">
             Is the right post Higher or Lower than the left?

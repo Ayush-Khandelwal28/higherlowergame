@@ -9,7 +9,7 @@ const MODE_LABEL: Record<LeaderboardMode, string> = {
   mystery: 'Mystery',
   'timed-classic': 'Classic Rush',
   'timed-mystery': 'Mystery Rush',
-  'post-won': 'Which Post Won',
+  'post-won': 'Versus',
 };
 
 export const Leaderboard: React.FC<LeaderboardProps> = ({ mode, onModeChange, onBack }) => {
