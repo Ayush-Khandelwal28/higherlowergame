@@ -12,9 +12,25 @@ interface PostCardProps {
   disabled?: boolean;
   /** If true, animate the score counting up when it becomes revealed */
   animateOnReveal?: boolean;
+  /** If true, temporarily hide the media (used to clear losing image) */
+  hideMedia?: boolean;
 }
 
-export const PostCard: React.FC<PostCardProps> = ({ post, onClick, selected, dim, revealed, disabled, animateOnReveal }) => {
+export const PostCard: React.FC<PostCardProps> = ({ post, onClick, selected, dim, revealed, disabled, animateOnReveal, hideMedia }) => {
+  const [mediaLoaded, setMediaLoaded] = React.useState(false);
+  const [mediaError, setMediaError] = React.useState(false);
+  const imgRef = React.useRef<HTMLImageElement | null>(null);
+
+  React.useEffect(() => {
+    setMediaLoaded(false);
+    setMediaError(false);
+    // If the image is already cached, mark as loaded immediately to avoid spinner flash
+    const el = imgRef.current;
+    if (el && el.complete && el.naturalWidth > 0) {
+      setMediaLoaded(true);
+    }
+  }, [post.thumbnail]);
+
   return (
     <button
       onClick={onClick}
@@ -37,12 +53,27 @@ export const PostCard: React.FC<PostCardProps> = ({ post, onClick, selected, dim
         {/* Media */}
         <div className="relative h-40 sm:h-48 rounded-t-[calc(theme(borderRadius.3xl)-2px)] overflow-hidden bg-[#fff5ef]">
           {post.thumbnail ? (
-            <img
-              src={post.thumbnail}
-              alt="thumbnail"
-              className="w-full h-full object-contain"
-              loading="lazy"
-            />
+            <>
+              <img
+                src={post.thumbnail}
+                alt="thumbnail"
+                className={[
+                  'w-full h-full object-contain transition-opacity duration-300',
+                  hideMedia || !mediaLoaded ? 'opacity-0' : 'opacity-100'
+                ].join(' ')}
+                loading="lazy"
+                decoding="async"
+                ref={imgRef}
+                onLoad={() => setMediaLoaded(true)}
+                onError={() => { setMediaError(true); setMediaLoaded(true); }}
+                aria-hidden={hideMedia}
+              />
+              {(!mediaLoaded && !mediaError && !hideMedia) && (
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <div className="h-8 w-8 rounded-full border-2 border-[#ff4500] border-t-transparent animate-spin" aria-label="Loading image" />
+                </div>
+              )}
+            </>
           ) : (
             <div className="w-full h-full flex items-center justify-center text-5xl">📰</div>
           )}

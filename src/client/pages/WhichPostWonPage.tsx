@@ -111,6 +111,7 @@ export const WhichPostWonPage: React.FC<PageProps> = ({ onBack, onViewLeaderboar
             dim={false}
             revealed
             disabled
+            hideMedia={Boolean(game.guessed && game.guessResult?.correct && game.guessResult.relation === 'higher')}
           />
           <PostCard
             post={game.challenger ?? { id: 'n/a', title: 'Loading…', author: null, permalink: '#', score: 0, createdUtc: 0 }}
@@ -119,6 +120,7 @@ export const WhichPostWonPage: React.FC<PageProps> = ({ onBack, onViewLeaderboar
             revealed={game.guessed}
             animateOnReveal
             disabled
+            hideMedia={Boolean(game.guessed && game.guessResult?.correct && game.guessResult.relation === 'lower')}
           />
         </div>
 
