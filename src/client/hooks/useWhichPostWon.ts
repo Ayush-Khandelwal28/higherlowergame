@@ -5,6 +5,8 @@ import pictureData from '../../../data/picture_posts.json';
 export interface WhichPostOptions {
   minScore?: number;
   constrainPercent?: number; // e.g., 0.2 for ±20% pairing window; undefined disables
+  /** Minimum ratio between higher and lower scores. Example: 2 means one is ≥ 2x the other */
+  minRatio?: number;
 }
 
 export interface WhichPostState {
@@ -37,10 +39,20 @@ function pairWithin(posts: PostLite[], anchor: PostLite, pct: number): PostLite 
   return candidates[Math.floor(Math.random() * candidates.length)]!;
 }
 
+function pairWithMinRatio(posts: PostLite[], anchor: PostLite, ratio: number): PostLite | null {
+  const a = Math.max(1, anchor.score);
+  const lo = Math.floor(a / Math.max(1.0001, ratio));
+  const hi = Math.ceil(a * ratio);
+  const candidates = posts.filter(p => p.id !== anchor.id && (p.score <= lo || p.score >= hi));
+  if (!candidates.length) return null;
+  return candidates[Math.floor(Math.random() * candidates.length)]!;
+}
+
 export function useWhichPostWon(opts?: Partial<WhichPostOptions>): WhichPostReturn {
   const defaults: WhichPostOptions = {
     minScore: 10,
     // constrainPercent: 0.2,
+    minRatio: 2,
   };
   const config = { ...defaults, ...(opts || {}) };
 
@@ -107,15 +119,30 @@ export function useWhichPostWon(opts?: Partial<WhichPostOptions>): WhichPostRetu
       if (pool.length < 2) return prev; // can't progress
       let base = carryBase || pickRandom(pool);
       let challenger: PostLite | null = null;
-      if (config.constrainPercent != null && config.constrainPercent > 0) {
-        challenger = pairWithin(pool, base, config.constrainPercent);
-        if (!challenger) {
-          const alt = pickRandom(pool);
-          challenger = pairWithin(pool, alt, config.constrainPercent) || pickRandom(pool);
-          base = alt;
+      const tryFind = (b: PostLite): PostLite | null => {
+        if (config.minRatio != null && config.minRatio > 1) {
+          return pairWithMinRatio(pool, b, config.minRatio);
         }
-      } else {
-        challenger = pickRandom(pool);
+        if (config.constrainPercent != null && config.constrainPercent > 0) {
+          return pairWithin(pool, b, config.constrainPercent);
+        }
+        return pickRandom(pool);
+      };
+      challenger = tryFind(base);
+      if (!challenger) {
+        // Try a handful of alternate bases to satisfy constraints
+        let attempts = 0;
+        while (!challenger && attempts++ < 12) {
+          const alt = pickRandom(pool);
+          const c = tryFind(alt);
+          if (c) {
+            base = alt;
+            challenger = c;
+            break;
+          }
+        }
+        // Fallback to random if no constrained pair found
+        if (!challenger) challenger = pickRandom(pool);
       }
       // Ensure distinct
       let guard = 0;
