@@ -29,21 +29,22 @@ export interface WhichPostReturn extends WhichPostState {
 }
 
 const BEST_KEY = 'hl_best_postwon';
+const HISTORY_LIMIT = 8;
 
-function pairWithin(posts: PostLite[], anchor: PostLite, pct: number): PostLite | null {
+function pairWithin(posts: PostLite[], anchor: PostLite, pct: number, exclude?: Set<string>): PostLite | null {
   const a = Math.max(1, anchor.score);
   const lo = Math.floor(a * (1 - pct));
   const hi = Math.ceil(a * (1 + pct));
-  const candidates = posts.filter(p => p.id !== anchor.id && p.score >= lo && p.score <= hi);
+  const candidates = posts.filter(p => p.id !== anchor.id && (!exclude || !exclude.has(p.id)) && p.score >= lo && p.score <= hi);
   if (!candidates.length) return null;
   return candidates[Math.floor(Math.random() * candidates.length)]!;
 }
 
-function pairWithMinRatio(posts: PostLite[], anchor: PostLite, ratio: number): PostLite | null {
+function pairWithMinRatio(posts: PostLite[], anchor: PostLite, ratio: number, exclude?: Set<string>): PostLite | null {
   const a = Math.max(1, anchor.score);
   const lo = Math.floor(a / Math.max(1.0001, ratio));
   const hi = Math.ceil(a * ratio);
-  const candidates = posts.filter(p => p.id !== anchor.id && (p.score <= lo || p.score >= hi));
+  const candidates = posts.filter(p => p.id !== anchor.id && (!exclude || !exclude.has(p.id)) && (p.score <= lo || p.score >= hi));
   if (!candidates.length) return null;
   return candidates[Math.floor(Math.random() * candidates.length)]!;
 }
@@ -69,6 +70,8 @@ export function useWhichPostWon(opts?: Partial<WhichPostOptions>): WhichPostRetu
     loading: false,
     error: null,
   });
+
+  const recentIdsRef = React.useRef<string[]>([]);
 
   const fetchPosts = React.useCallback(async (subreddit: string) => {
     setState(s => ({ ...s, loading: true, error: null }));
@@ -113,28 +116,44 @@ export function useWhichPostWon(opts?: Partial<WhichPostOptions>): WhichPostRetu
 
   const pickRandom = React.useCallback((arr: PostLite[]) => arr[Math.floor(Math.random() * arr.length)]!, []);
 
+  const pickRandomExcluding = React.useCallback((arr: PostLite[], exclude?: Set<string>) => {
+    if (!exclude || exclude.size === 0) return pickRandom(arr);
+    const candidates = arr.filter(p => !exclude.has(p.id));
+    const pool = candidates.length ? candidates : arr;
+    return pickRandom(pool);
+  }, [pickRandom]);
+
   const nextRound = React.useCallback((carryBase?: PostLite, poolOverride?: PostLite[]) => {
     setState(prev => {
       const pool = poolOverride ?? posts;
       if (pool.length < 2) return prev; // can't progress
-      let base = carryBase || pickRandom(pool);
+      let base = carryBase || pickRandomExcluding(pool, new Set(recentIdsRef.current));
       let challenger: PostLite | null = null;
-      const tryFind = (b: PostLite): PostLite | null => {
+      const tryFind = (b: PostLite, exclude?: Set<string>): PostLite | null => {
         if (config.minRatio != null && config.minRatio > 1) {
+          const c = pairWithMinRatio(pool, b, config.minRatio, exclude);
+          if (c) return c;
           return pairWithMinRatio(pool, b, config.minRatio);
         }
         if (config.constrainPercent != null && config.constrainPercent > 0) {
+          const c = pairWithin(pool, b, config.constrainPercent, exclude);
+          if (c) return c;
           return pairWithin(pool, b, config.constrainPercent);
         }
-        return pickRandom(pool);
+        if (exclude && exclude.size) {
+          const cand = pool.filter(p => p.id !== b.id && !exclude.has(p.id));
+          if (cand.length) return pickRandom(cand);
+        }
+        return pickRandom(pool.filter(p => p.id !== b.id));
       };
-      challenger = tryFind(base);
+      const exclude = new Set<string>([...recentIdsRef.current, base.id]);
+      challenger = tryFind(base, exclude);
       if (!challenger) {
         // Try a handful of alternate bases to satisfy constraints
         let attempts = 0;
         while (!challenger && attempts++ < 12) {
-          const alt = pickRandom(pool);
-          const c = tryFind(alt);
+          const alt = pickRandomExcluding(pool, new Set(recentIdsRef.current));
+          const c = tryFind(alt, new Set<string>([...recentIdsRef.current, alt.id]));
           if (c) {
             base = alt;
             challenger = c;
@@ -142,11 +161,19 @@ export function useWhichPostWon(opts?: Partial<WhichPostOptions>): WhichPostRetu
           }
         }
         // Fallback to random if no constrained pair found
-        if (!challenger) challenger = pickRandom(pool);
+        if (!challenger) {
+          const cand = pool.filter(p => p.id !== base.id && !recentIdsRef.current.includes(p.id));
+          challenger = cand.length ? pickRandom(cand) : pickRandom(pool.filter(p => p.id !== base.id));
+        }
       }
       // Ensure distinct
       let guard = 0;
-      while (challenger.id === base.id && guard++ < 10) challenger = pickRandom(pool);
+      while (challenger.id === base.id && guard++ < 10) challenger = pickRandom(pool.filter(p => p.id !== base.id));
+
+      const rec = recentIdsRef.current;
+      rec.push(base.id, challenger.id);
+      const max = HISTORY_LIMIT * 2;
+      if (rec.length > max) rec.splice(0, rec.length - max);
       return {
         ...prev,
         base,
@@ -156,11 +183,12 @@ export function useWhichPostWon(opts?: Partial<WhichPostOptions>): WhichPostRetu
         round: prev.round + 1,
       };
     });
-  }, [posts, pickRandom, config.constrainPercent]);
+  }, [posts, pickRandom, pickRandomExcluding, config.constrainPercent, config.minRatio]);
 
   const start = React.useCallback(async (subreddit: string) => {
     const items = await fetchPosts(subreddit);
     if (items.length >= 2) {
+      recentIdsRef.current = [];
       setState(s => ({ ...s, score: 0, gameOver: false }));
       nextRound(undefined, items);
     }
@@ -190,6 +218,7 @@ export function useWhichPostWon(opts?: Partial<WhichPostOptions>): WhichPostRetu
   };
 
   const reset = () => {
+    recentIdsRef.current = [];
     setState(s => ({ ...s, score: 0, gameOver: false, guessed: false, guessResult: null, round: 0 }));
     if (posts.length >= 2) nextRound();
   };
