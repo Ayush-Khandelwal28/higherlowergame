@@ -1,11 +1,15 @@
 #!/usr/bin/env node
 /**
  * Fetch the top image posts for subreddits listed in data/picture_subreddits.json.
+ * New: Availability mode — only check which subs have at least N image posts
+ * available and save that subreddit list to JSON (no posts saved).
  *
  * Auth: OAuth client_credentials (app-only) to avoid 429s.
  * Endpoint: https://oauth.reddit.com/r/<subreddit>/top?t=<timeframe>&limit=<limit>
  *
  * Output (default): data/picture_posts.json (override with OUT env var)
+ * Availability output (default): data/available_picture_subreddits.json
+ *   - override with OUT_AVAILABLE env var or --out-available
  * Each entry: { subreddit, id, title, score, createdAt, author, permalink, imageUrl }
  *
  * Usage examples (PowerShell):
@@ -20,9 +24,10 @@ import path from 'node:path';
 import process from 'node:process';
 
 const ROOT = path.resolve(process.cwd());
-const PICTURE_SUBS_FILE = path.join(ROOT, 'data/image_subreddits.json');
 const DATA_DIR = path.join(ROOT, 'data');
-const OUT_FILE = path.join(ROOT, process.env.OUT || 'data/picture_posts.json');
+const DEFAULT_SUBS_REL = process.env.SUBS_FILE || 'data/picture_subreddit.json';
+const DEFAULT_OUT_REL = process.env.OUT || 'data/picture_posts.json';
+const DEFAULT_OUT_AVAILABLE_REL = process.env.OUT_AVAILABLE || 'data/available_picture_subreddits.json';
 
 // ---- Args parsing -----------------------------------------------------------
 function parseArgs(argv){
@@ -34,6 +39,10 @@ function parseArgs(argv){
     concurrencyFromArg: null,
     startFromArg: null,
     maxSubsFromArg: null,
+    subsFileFromArg: null,
+    outAvailableFromArg: null,
+  minPostsFromArg: null,
+  savePostsFromArg: null,
   };
   for(let i=0;i<args.length;i++){
     const a = args[i];
@@ -61,19 +70,41 @@ function parseArgs(argv){
       const [,inline] = a.split('=');
       const val = inline || takeNext();
       if(val && /^\d+$/.test(val)) res.maxSubsFromArg = parseInt(val,10);
+    } else if(/^--subs-file(=|$)/.test(a)){
+      const [,inline] = a.split('=');
+      const val = inline || takeNext();
+      if(val) res.subsFileFromArg = val;
+    } else if(/^--out-available(=|$)/.test(a)){
+      const [,inline] = a.split('=');
+      const val = inline || takeNext();
+      if(val) res.outAvailableFromArg = val;
+    } else if(/^--min-posts(=|$)/.test(a)){
+      const [,inline] = a.split('=');
+      const val = inline || takeNext();
+      if(val && /^\d+$/.test(val)) res.minPostsFromArg = parseInt(val,10);
+    } else if(/^--save-posts$/.test(a)){
+      res.savePostsFromArg = true;
     }
   }
   return res;
 }
 
-const { timeframeFromArg, limitFromArg, delayFromArg, concurrencyFromArg, startFromArg, maxSubsFromArg } = parseArgs(process.argv);
+const { timeframeFromArg, limitFromArg, delayFromArg, concurrencyFromArg, startFromArg, maxSubsFromArg, subsFileFromArg, outAvailableFromArg, minPostsFromArg, savePostsFromArg } = parseArgs(process.argv);
 const TIMEFRAME = (timeframeFromArg || process.env.TIMEFRAME || 'year').toLowerCase();
-const PER_SUB_LIMIT = Math.max(1, Math.min(200, limitFromArg ?? parseInt(process.env.LIMIT || '200', 10))); // default top200 images; cap at 200
+const SAVE_POSTS = savePostsFromArg || process.env.SAVE_POSTS === '1' || process.env.SAVE_POSTS === 'true';
+const PER_SUB_LIMIT = SAVE_POSTS ? Math.max(1, Math.min(200, limitFromArg ?? parseInt(process.env.LIMIT || '200', 10))) : 0; // fetch posts only if saving
 const DELAY_MS = delayFromArg ?? parseInt(process.env.DELAY || '400', 10);
 const CONCURRENCY = Math.max(1, Math.min(3, concurrencyFromArg ?? parseInt(process.env.CONCURRENCY || '1', 10)));
 const START_INDEX = startFromArg ?? parseInt(process.env.START || '0', 10);
 const MAX_SUBS = maxSubsFromArg ?? parseInt(process.env.MAX_SUBS || '100', 10);
 const INCLUDE_NSFW = process.env.INCLUDE_NSFW === '1' || process.env.INCLUDE_NSFW === 'true';
+const subsCandidate = subsFileFromArg || DEFAULT_SUBS_REL;
+const SUBS_FILE = path.isAbsolute(subsCandidate) ? subsCandidate : path.join(ROOT, subsCandidate);
+const outAvailCandidate = outAvailableFromArg || DEFAULT_OUT_AVAILABLE_REL;
+const OUT_AVAILABLE = path.isAbsolute(outAvailCandidate) ? outAvailCandidate : path.join(ROOT, outAvailCandidate);
+const outPostsCandidate = DEFAULT_OUT_REL;
+const OUT_FILE = path.isAbsolute(outPostsCandidate) ? outPostsCandidate : path.join(ROOT, outPostsCandidate);
+const MIN_POSTS = Math.max(1, minPostsFromArg ?? parseInt(process.env.MIN_POSTS || '10', 10));
 
 const VALID_TIMEFRAMES = new Set(['hour','day','week','month','year','all']);
 if(!VALID_TIMEFRAMES.has(TIMEFRAME)){
@@ -155,12 +186,48 @@ function parseSubredditsFromJson(filePath){
   for(const item of list){
     if(typeof item !== 'string') continue;
     const trimmed = item.trim();
-    const m = /^(?:r\/)?([A-Za-z0-9_]+)$/.exec(trimmed);
-    if(m){
-      set.add(m[1]);
+    // Accept forms: "pics", "r/pics", "https://www.reddit.com/r/pics", "https://old.reddit.com/r/pics/"
+    let sub = null;
+    // URL form
+    try {
+      if(/^https?:\/\//i.test(trimmed)){
+        const u = new URL(trimmed);
+        const parts = u.pathname.split('/').filter(Boolean);
+        const rIdx = parts.findIndex(p=>p.toLowerCase()==='r');
+        if(rIdx !== -1 && parts[rIdx+1]){
+          sub = parts[rIdx+1];
+        }
+      }
+    } catch {}
+    // r/<name> or bare name
+    if(!sub){
+      const m = /^(?:r\/)?([A-Za-z0-9_]+)$/.exec(trimmed);
+      if(m) sub = m[1];
+    }
+    if(sub){
+      set.add(sub);
     }
   }
   return Array.from(set);
+}
+
+function tryResolveSubsFile(){
+  const candidates = [
+    SUBS_FILE,
+    path.isAbsolute(DEFAULT_SUBS_REL) ? DEFAULT_SUBS_REL : path.join(ROOT, DEFAULT_SUBS_REL),
+    path.join(ROOT, 'data', 'picture_subreddit.json'),
+    path.join(ROOT, 'picture_subreddit.json'),
+    path.join(ROOT, 'picture_subreddits.json'),
+    path.join(ROOT, 'data', 'picture_subreddits.json'),
+    path.join(ROOT, 'subreddits.json'),
+    path.join(ROOT, 'subs.json'),
+  ];
+  for(const p of candidates){
+    try{
+      if(fs.existsSync(p)) return p;
+    }catch{}
+  }
+  return SUBS_FILE;
 }
 
 // ---- Image selection helpers ------------------------------------------------
@@ -290,6 +357,31 @@ async function fetchTopImagePostsForSubreddit(subreddit, desiredCount){
   return results.slice(0, desiredCount);
 }
 
+async function hasAtLeastNImagePosts(subreddit, n){
+  const maxToScan = Math.max(n, Math.min(1000, n * 3));
+  let after = undefined;
+  let count = 0;
+  while(count < n){
+    const remainingToFetch = Math.min(100, Math.max(1, maxToScan - count));
+    const json = await fetchTopPage(subreddit, remainingToFetch, after);
+    const children = json?.data?.children || [];
+    if(children.length === 0) break;
+    for(const c of children){
+      const d = c?.data;
+      if(!d) continue;
+      if(!isImagePost(d)) continue;
+      const imageUrl = selectBestImageUrl(d);
+      if(!imageUrl) continue;
+      count++;
+      if(count >= n) break;
+    }
+    if(count >= n) break;
+    after = json?.data?.after;
+    if(!after) break;
+  }
+  return count >= n;
+}
+
 async function runInBatches(items, concurrency, worker, delayBetween=0){
   const results = [];
   let index = 0;
@@ -320,40 +412,61 @@ async function runInBatches(items, concurrency, worker, delayBetween=0){
 
 // ---- Main -------------------------------------------------------------------
 async function main(){
-  const subs = parseSubredditsFromJson(PICTURE_SUBS_FILE);
+  const subsPath = tryResolveSubsFile();
+  const subs = parseSubredditsFromJson(subsPath);
   const sliced = subs.slice(START_INDEX, START_INDEX + MAX_SUBS);
-  console.log(`Found ${subs.length} subreddits in data/picture_posts.json; using ${sliced.length} starting at index ${START_INDEX}.`);
-  console.log(`Fetching top image posts (timeframe=${TIMEFRAME}, perSub=${PER_SUB_LIMIT}) with concurrency=${CONCURRENCY} ...`);
+  console.log(`Found ${subs.length} subreddits in ${path.relative(ROOT, subsPath)}; using ${sliced.length} starting at index ${START_INDEX}.`);
+  console.log(`Mode: availability check (minPosts=${MIN_POSTS})${SAVE_POSTS ? ` + save posts (perSub=${PER_SUB_LIMIT})` : ''}. Concurrency=${CONCURRENCY}.`);
 
   let processed = 0;
+  const availableSubs = [];
   const perSubResults = await runInBatches(sliced, CONCURRENCY, async (name, idx)=>{
     try {
       if((idx+1) % 10 === 0) console.log(`  Progress: ${idx+1}/${sliced.length} subreddits processed...`);
-      const list = await fetchTopImagePostsForSubreddit(name, PER_SUB_LIMIT);
+      const ok = await hasAtLeastNImagePosts(name, MIN_POSTS);
+      if(ok){
+        availableSubs.push(name);
+      }
+      // If user also wants posts, fetch; otherwise skip
+      if(SAVE_POSTS && PER_SUB_LIMIT > 0){
+        const list = await fetchTopImagePostsForSubreddit(name, PER_SUB_LIMIT);
+        processed++;
+        return list;
+      }
       processed++;
-      return list;
+      return [];
     } catch (e){
       console.warn(`Failed to fetch r/${name}:`, e?.message || e);
       return [];
     }
   }, DELAY_MS);
 
-  console.log(`Fetched ${perSubResults.length} posts total across ${processed} subreddits.`);
+  console.log(`Availability: ${availableSubs.length}/${sliced.length} subs have at least ${MIN_POSTS} image posts.`);
+  if(SAVE_POSTS) console.log(`Fetched ${perSubResults.length} posts total across ${processed} subreddits.`);
 
-  // Write output
-  fs.mkdirSync(DATA_DIR, { recursive: true });
-  const output = {
-    source: 'oauth.reddit.com/r/<sub>/top',
-    timeframe: TIMEFRAME,
-    perSubredditLimit: PER_SUB_LIMIT,
-    includeNsfw: INCLUDE_NSFW,
-    totalSubreddits: sliced.length,
-    total: perSubResults.length,
-    fetchedAt: new Date().toISOString(),
-    entries: perSubResults,
-  };
-  fs.writeFileSync(OUT_FILE, JSON.stringify(output, null, 2));
-  console.log(`Saved ${perSubResults.length} entries to ${OUT_FILE}`);
+  // Write output: ensure directories exist for chosen paths
+  try { fs.mkdirSync(DATA_DIR, { recursive: true }); } catch {}
+  try { fs.mkdirSync(path.dirname(OUT_AVAILABLE), { recursive: true }); } catch {}
+  // Save availability list
+  fs.writeFileSync(OUT_AVAILABLE, JSON.stringify(availableSubs, null, 2));
+  console.log(`Saved ${availableSubs.length} available subreddits to ${OUT_AVAILABLE}`);
+
+  // Save posts output only if there are entries
+  if(SAVE_POSTS && perSubResults.length > 0){
+    try { fs.mkdirSync(path.dirname(OUT_FILE), { recursive: true }); } catch {}
+    const output = {
+      source: 'oauth.reddit.com/r/<sub>/top',
+      timeframe: TIMEFRAME,
+      perSubredditLimit: PER_SUB_LIMIT,
+      includeNsfw: INCLUDE_NSFW,
+      totalSubreddits: sliced.length,
+      total: perSubResults.length,
+      fetchedAt: new Date().toISOString(),
+      entries: perSubResults,
+    };
+    fs.writeFileSync(OUT_FILE, JSON.stringify(output, null, 2));
+    console.log(`Saved ${perSubResults.length} entries to ${OUT_FILE}`);
+  }
 }
 
 main().catch(err=>{
